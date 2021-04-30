@@ -1,0 +1,5 @@
+Javascript fuzzy number representation
+--------------------------------------
+Since Javascript represents numbers using binary base 2, very large
+and very small numbers with lots of decimal places are not represented
+accurately. To solve this, the Big.js dependency can be used (but is not here).

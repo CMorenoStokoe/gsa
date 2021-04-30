@@ -1,0 +1,90 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.isGood = exports.nodeValues = void 0;
+exports.nodeValues = {
+    'ukb_b-8476': { prevalence: 3, min: 0, max: 6, units: 'SD', SD: 1 },
+    'ukb_b-6519': { prevalence: 3, min: 0, max: 6, units: 'SD', SD: 1 },
+    'ukb_b-5779': { prevalence: 3, min: 0, max: 6, units: 'SD', SD: 1 },
+    'ukb_b-5238': { prevalence: 3, min: 0, max: 6, units: 'SD', SD: 1 },
+    'ukb_b-5237': { prevalence: 3, min: 0, max: 6, units: 'SD', SD: 1 },
+    'ukb_b-5076': { prevalence: 3, min: 0, max: 6, units: 'SD', SD: 1 },
+    'ukb_b-4956': { prevalence: 3, min: 0, max: 6, units: 'SD', SD: 1 },
+    'ukb_b-4710': { prevalence: 3, min: 0, max: 6, units: 'SD', SD: 1 },
+    'ukb_b-3957': { prevalence: 3, min: 0, max: 6, units: 'SD', SD: 1 },
+    'ukb_b-19953': { prevalence: 3, min: 0, max: 6, units: 'SD', SD: 1 },
+    'ieu_a-961': {
+        prevalence: 0.018,
+        min: 0,
+        max: 35,
+        units: 'Cigs/day',
+        SD: 11.7,
+    },
+    'ieu_a-7': {
+        prevalence: 0.014,
+        min: 0,
+        max: 1,
+        units: 'Odds (%)',
+        SD: null,
+    },
+    'ieu_a-24': {
+        prevalence: 0.056,
+        min: 0,
+        max: 1,
+        units: 'Odds (%)',
+        SD: null,
+    },
+    'ieu_a-1187': {
+        prevalence: 0.04,
+        min: 0,
+        max: 1,
+        units: 'Odds (%)',
+        SD: null,
+    },
+    'ieu_a-118': {
+        prevalence: 1.05,
+        min: 0,
+        max: 2.1,
+        units: 'Arbitrary score',
+        SD: 0.35,
+    },
+    'ieu_a-1018': { prevalence: 3, min: 0, max: 6, units: 'SD', SD: 1 },
+    'ieu_a-1239': {
+        prevalence: 16.8,
+        min: 4.4,
+        max: 28.4,
+        units: 'Years',
+        SD: 4.2,
+    },
+    // Unused traits
+    'ukb_b-4424': { prevalence: 7.15, min: 1, max: 23, units: 'Hrs/d', SD: 1 },
+    'ukb_d-SLEEP': {
+        prevalence: 0.022,
+        min: 0,
+        max: 1,
+        units: 'Odds (%)',
+        SD: 1,
+    },
+};
+exports.isGood = {
+    'ieu_a-1187': 'Bad',
+    'ukb_b-6519': 'Bad',
+    'ieu_a-1018': 'Good',
+    'ukb_b-8476': 'Bad',
+    'ukb_b-3957': 'Bad',
+    'ukb_d-SLEEP': 'Bad',
+    'ukb_b-4062': 'Good',
+    'ieu_a-118': 'Bad',
+    'ukb_b-5779': 'Bad',
+    'ieu_a-1239': 'Good',
+    'ukb_b-19953': 'Neutral',
+    'ukb_b-5238': 'Good',
+    'ukb_b-4956': 'Neutral',
+    'ukb_b-5076': 'Bad',
+    'ieu_a-961': 'Bad',
+    'ukb_b-4710': 'Good',
+    'ukb_b-5237': 'Neutral',
+    'ieu_a-7': 'Bad',
+    'ukb_b-4424': 'Good',
+    'ieu_a-24': 'Bad', //Diabetes
+};
+//# sourceMappingURL=trait%20extra%20info.js.map

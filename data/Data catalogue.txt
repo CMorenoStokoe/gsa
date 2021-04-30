@@ -1,0 +1,5 @@
+Q - every response by participants from the online form used to conduct this study. Includes subjective experience of using the software and learning assessment.
+
+gameplay - user actions while using the game or interactive visualisation learning software
+
+trait estimates - MR data previously obtained for a network of public health traits which the game was based on

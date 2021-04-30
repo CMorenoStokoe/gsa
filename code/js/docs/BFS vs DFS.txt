@@ -1,0 +1,19 @@
+Comparison to BFS and DFS
+------------------------
+The implementation of depth-first search (DFS) is differentiated from bredth-first search (BFS) by implementing a queue system and adding new 
+new nodes to the front of this queue. This results in nodes being explored 'depth-first' by following a node's path until it ends.
+Bredth-first however searches nodes in the order they are discovered.
+
+Example:
+a - b 
+a - c
+b - d
+
+DFS will search this network in this order: a-b, b-d, a-c
+BFS will search this network in this order: a-b, a-c, b-d
+
+This algorithm is  suited to avoiding loops because it follows a path until exhaustion, so can use this to remember the 
+route and avoid visiting nodes it has visited before.
+
+Critically, this variant of DFS is different however, in that it will back track when a node's predecessors haven't been fully searched yet.
+This allows a propagation network to follow its path and accurately update values of nodes by changes in their predecessors.
