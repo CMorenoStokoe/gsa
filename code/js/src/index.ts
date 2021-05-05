@@ -28,7 +28,7 @@ export const simulateEverything = (
     nodes?: Node[],
     deltasInNodeData?: boolean,
     valenceInNodeData?: boolean,
-    loopRemovalMethod?: 'all' | 'perIntervention'
+    loopRemovalMethod?: 'removeAll' | 'removeInterventionWise' | 'noLoopRemoval'
 ): {
     G: jsnx.classes.DiGraph;
     unsorted: Intervention[];

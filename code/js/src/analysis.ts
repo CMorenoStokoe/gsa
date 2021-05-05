@@ -1,8 +1,10 @@
+/* eslint-disable @typescript-eslint/ban-types */
 import { simulateEverything } from './index';
-import { Node, Edge } from '../@types/index';
+import { Node, Edge, Intervention } from '../@types/index';
 import estimates from './trait estimates.json';
 import { nodeValues, isGood } from './trait extra info';
-//import * as fs from 'fs';
+import * as fs from 'fs';
+import cloneDeep from 'lodash.cloneDeep';
 
 const seed: Edge[] = [
     { source: 'Exercise', target: 'Coffee intake' },
@@ -102,13 +104,67 @@ const nodes = (): Node[] => {
 
 TO DO
 
-Sort out bey best effects */
-const e = edges();
-const n = nodes();
-const results = simulateEverything(edges(), nodes(), true, true);
-// FIX: BEST INTERVENTIONS TAKE NODE LIST NOT JSNX NODELIST
-const x = nodes().filter((x) => x.id === 'Depression');
-const tests = {
+Sort out by best effects */
+const results = simulateEverything(
+    edges(),
+    nodes(),
+    true,
+    true,
+    'noLoopRemoval'
+);
+const t = (
+    id: string,
+    criteria: Array<'>' | '<' | '=' | number>[]
+): boolean => {
+    const sum = results.sorted.bySumOfEffects.filter((x) => x.origin === id)[0]
+        .sumOfEffects;
+    const goodness = results.sorted.byBestEffects.filter(
+        (x) => x.origin === id
+    )[0].sumOfEffects;
+    let effectDepression = results.sorted.byEffectOnNodes
+        .filter((x) => x.node === 'Depression')[0]
+        .ranks.filter((x) => x.origin === id)[0].results.Depression;
+    effectDepression === undefined ? (effectDepression = 0) : null;
+    let effectEveningness = results.sorted.byEffectOnNodes
+        .filter((x) => x.node === 'Eveningness')[0]
+        .ranks.filter((x) => x.origin === id)[0].results.Eveningness;
+    effectEveningness === undefined ? (effectEveningness = 0) : null;
+    const answers: Array<number> = [
+        sum,
+        goodness,
+        effectDepression,
+        effectEveningness,
+    ];
+    for (const i in answers) {
+        let o = false;
+        const q = criteria[i][0];
+        const a = criteria[i][1];
+        let t = null;
+        switch (q) {
+            case '>':
+                t = '>';
+                o = answers[i] > a;
+                break;
+            case '<':
+                t = '<';
+                o = answers[i] < a;
+                break;
+            default:
+                t = '===';
+                o = answers[i] === a;
+                break;
+        }
+        if (o === false) {
+            console.log(
+                'ERROR: Failed test',
+                `${id}, #${i} (${answers[i]} ! ${q} (${t}) ${a})`
+            );
+            return false;
+        }
+    }
+    return true;
+};
+const tests: Record<string, boolean> = {
     sameNNodes: nodes().length === 17,
     sameNEdges: edges().length === 42,
     correctTotalPossibleInterventions: results.unsorted.length === 17,
@@ -119,8 +175,48 @@ const tests = {
             results.sorted.byEffectOnNodes[6].ranks[2].results.Alcohol &&
         results.sorted.byEffectOnNodes[6].ranks[3].results.Alcohol >=
             results.sorted.byEffectOnNodes[6].ranks[4].results.Alcohol,
+    sensibleResult_eveningness: t('Eveningness', [
+        ['=', 1],
+        ['=', 0],
+        ['=', 0],
+        ['=', 1],
+    ]),
+    sensibleResult_depression: t('Depression', [
+        ['>', 1],
+        ['<', 0],
+        ['=', 1],
+        ['<', 0],
+    ]),
+    sensibleResult_exercise: t('Exercise', [
+        ['<', 1],
+        ['=', 1],
+        ['=', 0],
+        ['=', 0],
+    ]),
+    sensibleResult_education: t('Education', [
+        ['<', 0],
+        ['>', 1],
+        ['=', 0],
+        ['>', 0],
+    ]),
 };
-
-//fs.writeFile('data.json', results);
+const convert = (interventions: Intervention[]): string => {
+    const is = cloneDeep(interventions);
+    for (i of is) {
+        i.steps;
+    }
+    const o = Object.keys(is)
+        .map(function (k) {
+            return is[k];
+        })
+        .join(',');
+    return o;
+};
+const csv = convert(results.unsorted);
+/*
+fs.writeFile('data.csv', csv, () => {
+    console.log('done');
+});
+*/
 
 debugger;

@@ -3,35 +3,43 @@ import { Intervention, JsnxNode, Node } from '../@types/index';
 import { propagate } from '../src/propagation';
 import { calculatePropagationPath } from '../src/traversal';
 import { identifyAndRemoveLoops } from './loops';
+import cloneDeep from 'lodash.cloneDeep';
 
 export const calculateAllInterventionEffects = (
-    G: jsnx.classes.DiGraph,
+    graph: jsnx.classes.DiGraph,
     deltas?: Node[],
-    loopRemovalMethod?: 'all' | 'perIntervention'
+    loopRemovalMethod?: 'removeAll' | 'removeInterventionWise' | 'noLoopRemoval'
 ): Intervention[] => {
+    const G = cloneDeep(graph);
+
     const defaultDelta = 1;
-    const allNodesInG: Node[] = G.nodes(true);
+    const allNodesInG: JsnxNode[] = G.nodes(true);
 
     const allInterventionEffects = [];
 
+    // Debugging
+    if (allNodesInG.length <= 1) {
+        console.log('WARNING: Only one node found in network:', allNodesInG);
+    }
+
     // Remove all loops
-    if (!(loopRemovalMethod === 'perIntervention')) {
+    if (loopRemovalMethod === undefined || loopRemovalMethod === 'removeAll') {
         for (const node of allNodesInG) {
-            const id = node[0];
+            const id = node[0]; // class of node = JsnxNode[0]
             identifyAndRemoveLoops(G, id);
         }
     }
 
     for (const node of allNodesInG) {
-        const id = node[0];
+        const id: string = node[0]; // class of node = JsnxNode[0]
 
         // Use intervention delta provided or default
         const ds: Node[] = deltas ? deltas.filter((x) => x[0] === id) : [];
         const d: number = ds.length === 1 ? ds[0][1].delta : defaultDelta;
 
         // Simulate intervention on every node
-        const g = G;
-        if (loopRemovalMethod === 'perIntervention') {
+        const g = cloneDeep(G);
+        if (loopRemovalMethod === 'removeInterventionWise') {
             identifyAndRemoveLoops(g, id);
         }
         const path = calculatePropagationPath(g, id);
@@ -41,10 +49,20 @@ export const calculateAllInterventionEffects = (
     return allInterventionEffects;
 };
 
-const sortBySumOfEffects = (is: Intervention[]): Intervention[] => {
-    for (const i of is) {
-        i.sumOfEffects = Object.values(i.results).reduce(
-            (a: number, b: number) => a + b
+const sortBySumOfEffects = (interventions: Intervention[]): Intervention[] => {
+    const is = cloneDeep(interventions);
+    if (is.length > 1) {
+        for (const i of is) {
+            i.sumOfEffects = Object.values(i.results).reduce(
+                (a: number, b: number) => a + b
+            );
+        }
+    } else if (is.length === 1) {
+        const i = is[0];
+        i.sumOfEffects = Object.values(i.results)[0];
+    } else {
+        console.log(
+            'WARNING: Some intervention(s) have no effects, not even on themselves'
         );
     }
     is.sort(function (a, b) {
@@ -54,19 +72,21 @@ const sortBySumOfEffects = (is: Intervention[]): Intervention[] => {
 };
 
 const sortedByEffectOnNode = (
-    is: Intervention[],
+    interventions: Intervention[],
     targetNode: Node['id']
 ): Intervention[] => {
-    is.sort(function (a, b) {
+    const is = cloneDeep(interventions);
+    is.sort(function (a: Intervention, b: Intervention) {
         return b.results[targetNode] - a.results[targetNode];
     });
     return is;
 };
 
 const sortedByBestEffects = (
-    is: Intervention[],
+    interventions: Intervention[],
     nodes: JsnxNode[]
 ): Intervention[] => {
+    const is = cloneDeep(interventions);
     try {
         const vm = (node: Node['id']) => {
             const valence = nodes.filter((x) => x[0] === node)[0][1].valence;
@@ -81,11 +101,12 @@ const sortedByBestEffects = (
         };
         for (const i of is) {
             i.sumOfEffects = 0;
-            for (const [k, v] of Object.entries(i.results)) {
+            const res: Intervention['results'] = i.results;
+            for (const [k, v] of Object.entries(res)) {
                 i.sumOfEffects += v * vm(k);
             }
         }
-        is.sort(function (a, b) {
+        is.sort(function (a: Intervention, b: Intervention) {
             return b.sumOfEffects - a.sumOfEffects;
         });
         return is;
