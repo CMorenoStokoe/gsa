@@ -27,8 +27,7 @@ const calculateAllInterventionEffects = (graph, deltas, loopRemovalMethod) => {
     for (const node of allNodesInG) {
         const id = node[0]; // class of node = JsnxNode[0]
         // Use intervention delta provided or default
-        const ds = deltas ? deltas.filter((x) => x[0] === id) : [];
-        const d = ds.length === 1 ? ds[0][1].delta : defaultDelta;
+        const d = deltas ? node[1].delta : defaultDelta;
         // Simulate intervention on every node
         const g = lodash_cloneDeep_1.default(G);
         if (loopRemovalMethod === 'removeInterventionWise') {

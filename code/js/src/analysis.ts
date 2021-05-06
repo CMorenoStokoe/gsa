@@ -1,11 +1,11 @@
 /* eslint-disable @typescript-eslint/ban-types */
 import { simulateEverything } from './index';
-import { Node, Edge, Intervention } from '../@types/index';
+import { Node, Edge, Intervention, InterventionSummary } from '../@types/index';
 import estimates from './trait estimates.json';
 import { nodeValues, isGood } from './trait extra info';
-import * as fs from 'fs';
-import cloneDeep from 'lodash.cloneDeep';
+import ObjectsToCsv from 'objects-to-csv';
 
+// Prepare data
 const seed: Edge[] = [
     { source: 'Exercise', target: 'Coffee intake' },
     { source: 'Intelligence', target: 'Exercise' },
@@ -84,15 +84,37 @@ const edges = (): Edge[] => {
 };
 const nodes = (): Node[] => {
     const output: Node[] = [];
+    const calcDelta = (
+        id: string,
+        units: string,
+        prevalenceForOddsCalc: number,
+        valence: string
+    ) => {
+        let d = 1;
+        /* NOTE: In game, odds interventions did changed by a different amount to SD, this was in attempt to standardise the visual effects */
+        //let d = units === 'Odds (%)' ? prevalenceForOddsCalc * 0.33 : 1;
+        if (id === 'BMI') {
+            d = -d;
+        } else if (id === 'Coffee consumption' || id === 'Eveningness') {
+            d = d;
+        } else {
+            if (valence === 'Bad') {
+                d *= -1;
+            }
+        }
+        return d;
+    };
     estimates.nodes.forEach((e) => {
         if (isInGame(e['label'])) {
             // Exclude happiness since it wasn't in game / test
             output.push({
                 id: e['label'],
-                delta:
-                    nodeValues[e['id']].units === 'Odds (%)'
-                        ? nodeValues[e['id']].prevalence * 0.33
-                        : 1,
+                delta: calcDelta(
+                    e['label'],
+                    nodeValues[e['id']].units,
+                    nodeValues[e['id']].prevalence,
+                    isGood[e['id']]
+                ),
                 valence: isGood[e['id']],
             });
         }
@@ -100,11 +122,7 @@ const nodes = (): Node[] => {
     return output;
 };
 
-/* 
-
-TO DO
-
-Sort out by best effects */
+// Run analysis
 const results = simulateEverything(
     edges(),
     nodes(),
@@ -112,6 +130,8 @@ const results = simulateEverything(
     true,
     'noLoopRemoval'
 );
+
+// Test results
 const t = (
     id: string,
     criteria: Array<'>' | '<' | '=' | number>[]
@@ -124,11 +144,15 @@ const t = (
     let effectDepression = results.sorted.byEffectOnNodes
         .filter((x) => x.node === 'Depression')[0]
         .ranks.filter((x) => x.origin === id)[0].results.Depression;
-    effectDepression === undefined ? (effectDepression = 0) : null;
+    if (effectDepression === undefined) {
+        effectDepression = 0;
+    }
     let effectEveningness = results.sorted.byEffectOnNodes
         .filter((x) => x.node === 'Eveningness')[0]
         .ranks.filter((x) => x.origin === id)[0].results.Eveningness;
-    effectEveningness === undefined ? (effectEveningness = 0) : null;
+    if (effectEveningness === undefined) {
+        effectEveningness = 0;
+    }
     const answers: Array<number> = [
         sum,
         goodness,
@@ -182,10 +206,10 @@ const tests: Record<string, boolean> = {
         ['=', 1],
     ]),
     sensibleResult_depression: t('Depression', [
-        ['>', 1],
         ['<', 0],
-        ['=', 1],
-        ['<', 0],
+        ['>', 0],
+        ['=', -1],
+        ['>', 0],
     ]),
     sensibleResult_exercise: t('Exercise', [
         ['<', 1],
@@ -200,23 +224,47 @@ const tests: Record<string, boolean> = {
         ['>', 0],
     ]),
 };
-const convert = (interventions: Intervention[]): string => {
-    const is = cloneDeep(interventions);
-    for (i of is) {
-        i.steps;
-    }
-    const o = Object.keys(is)
-        .map(function (k) {
-            return is[k];
-        })
-        .join(',');
-    return o;
-};
-const csv = convert(results.unsorted);
-/*
-fs.writeFile('data.csv', csv, () => {
-    console.log('done');
-});
-*/
+tests;
 
-debugger;
+//  Format outputs for saving
+const formatDataForCSV = (
+    interventions: Intervention[]
+): InterventionSummary[] => {
+    const formattedData: InterventionSummary[] = interventions.map((x) => {
+        return {
+            ORIGIN: x.origin,
+            SCORE: x.sumOfEffects,
+            STEPS: x.steps.length,
+            Depression: x.results.Depression,
+            Worry: x.results.Worry,
+            Wellbeing: x.results.Wellbeing,
+            Loneliness: x.results.Loneliness,
+            Sleeplessness: x.results.Sleeplessness,
+            Neuroticism: x.results.Neuroticism,
+            Alcohol: x.results.Alcohol,
+            Education: x.results.Education,
+            BMI: x.results.BMI,
+            Intelligence: x.results.Intelligence,
+            Eveningness: x.results.Eveningness,
+            'Not socialising': x.results['Not socialising'],
+            Smoking: x.results.Smoking,
+            Exercise: x.results.Exercise,
+            'Coffee intake': x.results['Coffee intake'],
+            CHD: x.results.CHD,
+            Diabetes: x.results.Diabetes,
+        };
+    });
+    return formattedData;
+};
+const output = formatDataForCSV(results.sorted.byBestEffects);
+
+// Save results
+(async () => {
+    const csv = new ObjectsToCsv(output);
+
+    // Save to file:
+    await csv.toDisk('allInterventionScores.csv');
+
+    // Return the CSV file as string:
+    console.log(await csv.toString());
+})();

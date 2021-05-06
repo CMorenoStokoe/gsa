@@ -7,7 +7,7 @@ import cloneDeep from 'lodash.cloneDeep';
 
 export const calculateAllInterventionEffects = (
     graph: jsnx.classes.DiGraph,
-    deltas?: Node[],
+    deltas?: boolean,
     loopRemovalMethod?: 'removeAll' | 'removeInterventionWise' | 'noLoopRemoval'
 ): Intervention[] => {
     const G = cloneDeep(graph);
@@ -31,11 +31,10 @@ export const calculateAllInterventionEffects = (
     }
 
     for (const node of allNodesInG) {
-        const id: string = node[0]; // class of node = JsnxNode[0]
+        const id: Node['id'] = node[0]; // class of node = JsnxNode[0]
 
         // Use intervention delta provided or default
-        const ds: Node[] = deltas ? deltas.filter((x) => x[0] === id) : [];
-        const d: number = ds.length === 1 ? ds[0][1].delta : defaultDelta;
+        const d: number = deltas ? node[1].delta : defaultDelta;
 
         // Simulate intervention on every node
         const g = cloneDeep(G);

@@ -29,3 +29,25 @@ export type Intervention = {
     results: Record<Node['id'], number>;
     sumOfEffects?: number;
 };
+export type InterventionSummary = {
+    ORIGIN: Node['id'];
+    SCORE: number;
+    STEPS: number;
+    Depression: number | undefined;
+    Worry: number | undefined;
+    Wellbeing: number | undefined;
+    Loneliness: number | undefined;
+    Sleeplessness: number | undefined;
+    Neuroticism: number | undefined;
+    Alcohol: number | undefined;
+    Education: number | undefined;
+    BMI: number | undefined;
+    Intelligence: number | undefined;
+    Eveningness: number | undefined;
+    'Not socialising': number | undefined;
+    Smoking: number | undefined;
+    Exercise: number | undefined;
+    'Coffee intake': number | undefined;
+    CHD: number | undefined;
+    Diabetes: number | undefined;
+};

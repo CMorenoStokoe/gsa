@@ -7,7 +7,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const index_1 = require("./index");
 const trait_estimates_json_1 = __importDefault(require("./trait estimates.json"));
 const trait_extra_info_1 = require("./trait extra info");
-const lodash_cloneDeep_1 = __importDefault(require("lodash.cloneDeep"));
+const objects_to_csv_1 = __importDefault(require("objects-to-csv"));
+// Prepare data
 const seed = [
     { source: 'Exercise', target: 'Coffee intake' },
     { source: 'Intelligence', target: 'Exercise' },
@@ -86,26 +87,38 @@ const edges = () => {
 };
 const nodes = () => {
     const output = [];
+    const calcDelta = (id, units, prevalenceForOddsCalc, valence) => {
+        let d = 1;
+        /* NOTE: In game, odds interventions did changed by a different amount to SD, this was in attempt to standardise the visual effects */
+        //let d = units === 'Odds (%)' ? prevalenceForOddsCalc * 0.33 : 1;
+        if (id === 'BMI') {
+            d = -d;
+        }
+        else if (id === 'Coffee consumption' || id === 'Eveningness') {
+            d = d;
+        }
+        else {
+            if (valence === 'Bad') {
+                d *= -1;
+            }
+        }
+        return d;
+    };
     trait_estimates_json_1.default.nodes.forEach((e) => {
         if (isInGame(e['label'])) {
             // Exclude happiness since it wasn't in game / test
             output.push({
                 id: e['label'],
-                delta: trait_extra_info_1.nodeValues[e['id']].units === 'Odds (%)'
-                    ? trait_extra_info_1.nodeValues[e['id']].prevalence * 0.33
-                    : 1,
+                delta: calcDelta(e['label'], trait_extra_info_1.nodeValues[e['id']].units, trait_extra_info_1.nodeValues[e['id']].prevalence, trait_extra_info_1.isGood[e['id']]),
                 valence: trait_extra_info_1.isGood[e['id']],
             });
         }
     });
     return output;
 };
-/*
-
-TO DO
-
-Sort out by best effects */
+// Run analysis
 const results = index_1.simulateEverything(edges(), nodes(), true, true, 'noLoopRemoval');
+// Test results
 const t = (id, criteria) => {
     const sum = results.sorted.bySumOfEffects.filter((x) => x.origin === id)[0]
         .sumOfEffects;
@@ -113,11 +126,15 @@ const t = (id, criteria) => {
     let effectDepression = results.sorted.byEffectOnNodes
         .filter((x) => x.node === 'Depression')[0]
         .ranks.filter((x) => x.origin === id)[0].results.Depression;
-    effectDepression === undefined ? (effectDepression = 0) : null;
+    if (effectDepression === undefined) {
+        effectDepression = 0;
+    }
     let effectEveningness = results.sorted.byEffectOnNodes
         .filter((x) => x.node === 'Eveningness')[0]
         .ranks.filter((x) => x.origin === id)[0].results.Eveningness;
-    effectEveningness === undefined ? (effectEveningness = 0) : null;
+    if (effectEveningness === undefined) {
+        effectEveningness = 0;
+    }
     const answers = [
         sum,
         goodness,
@@ -166,10 +183,10 @@ const tests = {
         ['=', 1],
     ]),
     sensibleResult_depression: t('Depression', [
-        ['>', 1],
         ['<', 0],
-        ['=', 1],
-        ['<', 0],
+        ['>', 0],
+        ['=', -1],
+        ['>', 0],
     ]),
     sensibleResult_exercise: t('Exercise', [
         ['<', 1],
@@ -184,23 +201,42 @@ const tests = {
         ['>', 0],
     ]),
 };
-const convert = (interventions) => {
-    const is = lodash_cloneDeep_1.default(interventions);
-    for (i of is) {
-        i.steps;
-    }
-    const o = Object.keys(is)
-        .map(function (k) {
-        return is[k];
-    })
-        .join(',');
-    return o;
+tests;
+//  Format outputs for saving
+const formatDataForCSV = (interventions) => {
+    const formattedData = interventions.map((x) => {
+        return {
+            ORIGIN: x.origin,
+            SCORE: x.sumOfEffects,
+            STEPS: x.steps.length,
+            Depression: x.results.Depression,
+            Worry: x.results.Worry,
+            Wellbeing: x.results.Wellbeing,
+            Loneliness: x.results.Loneliness,
+            Sleeplessness: x.results.Sleeplessness,
+            Neuroticism: x.results.Neuroticism,
+            Alcohol: x.results.Alcohol,
+            Education: x.results.Education,
+            BMI: x.results.BMI,
+            Intelligence: x.results.Intelligence,
+            Eveningness: x.results.Eveningness,
+            'Not socialising': x.results['Not socialising'],
+            Smoking: x.results.Smoking,
+            Exercise: x.results.Exercise,
+            'Coffee intake': x.results['Coffee intake'],
+            CHD: x.results.CHD,
+            Diabetes: x.results.Diabetes,
+        };
+    });
+    return formattedData;
 };
-const csv = convert(results.unsorted);
-/*
-fs.writeFile('data.csv', csv, () => {
-    console.log('done');
-});
-*/
-debugger;
+const output = formatDataForCSV(results.sorted.byBestEffects);
+// Save results
+(async () => {
+    const csv = new objects_to_csv_1.default(output);
+    // Save to file:
+    await csv.toDisk('allInterventionScores.csv');
+    // Return the CSV file as string:
+    console.log(await csv.toString());
+})();
 //# sourceMappingURL=analysis.js.map

@@ -47,7 +47,7 @@ export const simulateEverything = (
     // Simulate all interventions
     const is = calculateAllInterventionEffects(
         G,
-        deltasInNodeData ? nodes : undefined,
+        deltasInNodeData ? true : undefined,
         loopRemovalMethod
     );
 

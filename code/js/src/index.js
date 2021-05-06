@@ -19,7 +19,7 @@ const simulateEverything = (edges, nodes, deltasInNodeData, valenceInNodeData, l
     // Prepare data
     const G = format_1.formatData(edges, nodes);
     // Simulate all interventions
-    const is = interventions_1.calculateAllInterventionEffects(G, deltasInNodeData ? nodes : undefined, loopRemovalMethod);
+    const is = interventions_1.calculateAllInterventionEffects(G, deltasInNodeData ? true : undefined, loopRemovalMethod);
     /* Sort interventions by effectiveness */
     // By overall effects
     const sortedBySumOfEffects = interventions_1.sortInterventions(is, { sumOfEffects: true });
