@@ -1,8 +1,13 @@
 # for data manipulation
-install.packages('dplyr')
-install.packages('broom')
+install.packages('dplyr') # Data fram manipulation
+install.packages('broom') # Tidying outputs
+install.packages('qpcR') # cbind.na utility
 # for importing csv data
-install.packages('readr')
-install.packages('Rcpp')
+install.packages('readr') # Reading csv
+install.packages('Rcpp') 
 # for analysis
-install.packages('psych')
+install.packages('psych') # Descriptives
+install.packages('Hmisc') # Correlation matrix
+# for plots
+install.packages('corrplot') # Plotting correlation matrices
+install.packages('ggplot2') # Plots
