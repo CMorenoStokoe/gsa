@@ -1,11 +1,6 @@
 ## initialisation
-library('readr')
-library('psych')
-library('broom')
-library('Hmisc')
-library('corrplot')
-library('qpcR')
-library('dplyr')
+lapply(c("psych","readr","broom", "Hmisc", "corrplot","qpcR","dplyr","ggplot2", "ggfortify")
+       , require, character.only = TRUE)
 setwd("C:/py/gsa") # Set WD
 
 ## scoring
@@ -97,32 +92,31 @@ Q <- read_csv("data/cleaned/Q_excludedPpts.csv")
   # Score MCQ
   
     # Try different methods of scoring
-      # Raw
-      # Raw, as percent
-      Q <- Q %>% 
+      Q <- Q %>%  # Raw, as percent
         mutate(test_score_pct = test_score / 22 * 100 ) 
-      # Adjusted for guessing
-      Q <- Q %>% 
+      Q <- Q %>% # Adjusted for guessing
         mutate(test_score_adjusted = test_score - 8 ) 
-      # Adjusted for guessing, as percent
-      Q <- Q %>% 
-        mutate(test_score_adjusted_pct = test_score_adjusted / 16 * 100 ) # 16.64 highest possible score
-      # Z-score
-      Q <- Q %>%  
+      Q <- Q %>% # Adjusted for guessing, as percent
+        mutate(test_score_adjusted_pct = test_score_adjusted / 17 * 100 ) # 17 highest possible score
+      Q <- Q %>% # Z-score
         mutate(test_score_z = (
-          (test_score - 15.672) / 1.977013
-          # mean = 15.672 # mean(Q$test_score, na.rm=TRUE)
-          # sd = 1.977013 # sd(Q$test_score, na.rm=TRUE)
+          (test_score - mean(Q$test_score, na.rm=TRUE)) / sd(Q$test_score, na.rm=TRUE)
       ))
     
     # Plot
     par(mfrow=c(2,3))
     hist(Q$test_score, main='Raw', xlab='Score (Correct answers)', xlim=c(0,22))
     hist(Q$test_score_pct, main='Raw (%)', xlab='Score (Percent)', xlim=c(0,100))
-    hist(Q$test_score_z, main='Z-score', xlab='Score (SD)')
+    hist(Q$test_score_z, main='Z-score', xlab='Score (SD)', xlim=c(-3,3))
     hist(Q$test_score_adjusted, main='Adjusted for guessing', xlab='Score (Correct answers)', xlim=c(0,22))
     hist(Q$test_score_adjusted_pct, main='Adjusted for guessing (%)', xlab='Score (Percent)', xlim=c(0,100))
     title("Scoring methods for MCQ", line = -1, outer = TRUE)
+    
+    # Describe across conditions
+    exp <- Q %>% filter(cond == 'Exp')
+    ctr <- Q %>% filter(cond == 'Ctr')
+    describe(exp$test_score)
+    describe(ctr$test_score)
     
     # Validity
     
@@ -198,6 +192,7 @@ Q <- read_csv("data/cleaned/Q_excludedPpts.csv")
            select(Q2, Q4,	Q5,	Q6,	Q7,	Q8,	Q9,	Q12,	Q13,	Q15,	Q16,	Q21),
            na.rm=TRUE
         )
+        write.csv(mcq_alpha3$alpha.drop, "data/cleaned/scoring_mcq_alpha4.csv", row.names=TRUE)
         # Plot
         par(mfrow=c(1,1))
         boxplot(qpcR:::cbind.na(
@@ -209,9 +204,9 @@ Q <- read_csv("data/cleaned/Q_excludedPpts.csv")
           ylim=c(0,0.6), ylab='Correlation with total score (r)', names=FALSE
         )
         mtext("Original \n n=22 \n a=.43", line=2, side=1, at=1, cex=0.8)
-        mtext("Step 1 (prob.) \n n=18 \n a=.53", line=2, side=1, at=2, cex=0.8)
-        mtext("Step 2 (-ve) \n n=12 \n a=.58", line=2, side=1, at=3, cex=0.8)
-        mtext("Step 3 (poor) \n n=10 \n a=.60", line=2, side=1, at=4, cex=0.8)
+        mtext("Step 1 (prob.) \n n=16 \n a=.53", line=2, side=1, at=2, cex=0.8)
+        mtext("Step 2 (-ve) \n n=14 \n a=.58", line=2, side=1, at=3, cex=0.8)
+        mtext("Step 3 (poor) \n n=12 \n a=.60", line=2, side=1, at=4, cex=0.8)
         title("Individual MCQ question loadings", line=-1, outer = TRUE)
     
         # Alpha by subsection
@@ -223,9 +218,108 @@ Q <- read_csv("data/cleaned/Q_excludedPpts.csv")
         #    "5) Negating effects" = psych::alpha(Q %>% select(Q14, Q15),na.rm=TRUE)$total$raw_alpha,
         #    "6) Indirect effects" = psych::alpha(Q %>% select(Q16, Q17, Q18, Q19, Q20, Q21, Q22),na.rm=TRUE)$total$raw_alpha
         #  )
-        
-  # Score intervention task
+
+    # Re-score MCQ after excluding items
+      
+      # Calc scores
+      Q <- Q %>%  # Raw
+        mutate(mcq_total = sum(Q2, Q4,	Q5,	Q6,	Q7,	Q8,	Q9,	Q12,	Q13,	Q15,	Q16,	Q21) ) 
+      Q <- Q %>%  # Raw, as percent
+        mutate(mcq_total_pct = mcq_total / 12 * 100 ) 
+      Q <- Q %>% # Adjusted for guessing
+        mutate(mcq_total_adj = mcq_total - 5.65 ) # Score attainable by guessing 5.65
+      Q <- Q %>% # Adjusted for guessing, as percent
+        mutate(mcq_total_adj_pct = mcq_total_adj / 7 * 100 ) # 7 highest possible score
+      Q <- Q %>% # Z-score
+        mutate(mcq_total_z = (
+          (mcq_total - mean(Q$mcq_total, na.rm=TRUE) ) / sd(Q$mcq_total, na.rm=TRUE)
+        ))
+    
+      # Plot
+      par(mfrow=c(2,3))
+      hist(Q$mcq_total, main='Raw', xlab='Score (Correct answers)', xlim=c(0,22))
+      hist(Q$mcq_total_pct, main='Raw (%)', xlab='Score (Percent)', xlim=c(0,100))
+      hist(Q$mcq_total_z, main='Z-score', xlab='Score (SD)')
+      hist(Q$mcq_total_adj, main='Adjusted for guessing', xlab='Score (Correct answers)', xlim=c(0,22))
+      hist(Q$mcq_total_adj_pct, main='Adjusted for guessing (%)', xlab='Score (Percent)', xlim=c(0,100))
+      title("Scores after step 3", line = -1, outer = TRUE)
+    
+    # Checking less extreme exclusion
+      
+      # Calc scores
+      Q <- Q %>%  # Raw
+        mutate(mcq_total = sum(Q2, Q4,	Q5,	Q6,	Q7,	Q8,	Q9,Q10, Q11,	Q12,	Q13,	Q15,	Q16, Q19, Q21, Q22) ) 
+      Q <- Q %>%  # Raw, as percent
+        mutate(mcq_total_pct = mcq_total / 16 * 100 ) 
+      Q <- Q %>% # Adjusted for guessing
+        mutate(mcq_total_adj = mcq_total - 7 ) # Score attainable by guessing 7
+      Q <- Q %>% # Adjusted for guessing, as percent
+        mutate(mcq_total_adj_pct = mcq_total_adj / 9 * 100 ) # 9 highest possible score
+      Q <- Q %>% # Z-score
+        mutate(mcq_total_z = (
+          (mcq_total - mean(Q$mcq_total, na.rm=TRUE) ) / sd(Q$mcq_total, na.rm=TRUE)
+          # mean = 15.672 # 
+          # sd = 1.977013 # 
+        ))
+      
+      # Plot
+      par(mfrow=c(2,3))
+      hist(Q$mcq_total, main='Raw', xlab='Score (Correct answers)', xlim=c(0,22))
+      hist(Q$mcq_total_pct, main='Raw (%)', xlab='Score (Percent)', xlim=c(0,100))
+      hist(Q$mcq_total_z, main='Z-score', xlab='Score (SD)')
+      hist(Q$mcq_total_adj, main='Adjusted for guessing', xlab='Score (Correct answers)', xlim=c(0,22))
+      hist(Q$mcq_total_adj_pct, main='Adjusted for guessing (%)', xlab='Score (Percent)', xlim=c(0,100))
+      title("Scores after step 1", line = -1, outer = TRUE)
+      
+      # Explore difficulty
+      par(mfrow=c(1,1))
+      #Q2, Q4,	Q5,	Q6,	Q7,	Q8,	Q9,Q10, Q11,	Q12,	Q13,	Q15,	Q16, Q19, Q21, Q22
+      mcq_answers2 <- data.frame(
+        Q2 = sum(Q$Q2, na.rm=TRUE)/175*100,
+        Q4 = sum(Q$Q4, na.rm=TRUE)/175*100,
+        Q5 = sum(Q$Q5, na.rm=TRUE)/175*100,
+        Q6 = sum(Q$Q6, na.rm=TRUE)/175*100,
+        Q7 = sum(Q$Q7, na.rm=TRUE)/175*100,
+        Q8 = sum(Q$Q8, na.rm=TRUE)/175*100,
+        Q9 = sum(Q$Q9, na.rm=TRUE)/175*100,
+        #Q10 = sum(Q$Q10, na.rm=TRUE)/175*100,
+        #Q11 = sum(Q$Q11, na.rm=TRUE)/175*100,
+        Q12 = sum(Q$Q12, na.rm=TRUE)/175*100,
+        Q13 = sum(Q$Q13, na.rm=TRUE)/175*100,
+        Q15 = sum(Q$Q15, na.rm=TRUE)/175*100,
+        Q16 = sum(Q$Q16, na.rm=TRUE)/175*100,
+        #Q19 = sum(Q$Q19, na.rm=TRUE)/175*100,
+        Q21 = sum(Q$Q21, na.rm=TRUE)/175*100
+        #Q22 = sum(Q$Q22, na.rm=TRUE)/175*100
+      )
+      barplot(as.matrix(mcq_answers2),
+              las=2, xlab='Question', 
+              main='Correct answers per question', 
+              ylab='Participants answered correctly (n)', 
+              ylim=c(0,100),
+              axes=FALSE
+      )
+      mean(t(mcq_answers2))
+      axis(2,at=seq(0,175,25))
+      
+    # Trial removing by easiest questions
+    mcq_alpha_b <- psych::alpha(Q %>%
+      select(Q8,Q9,Q14,Q17,Q18,Q19,Q22),
+      na.rm=TRUE
+    )
+    
+    # Trial PCA
+    allQs <- Q %>% select(Q1,	Q2,	Q3,	Q4,	Q5,	Q6,	Q7,	Q8,	Q9,	Q10,	Q11,	Q12,	Q13,	Q14,	Q15,	Q16, Q17,	Q18,	Q19,	Q20,	Q21,	Q22)
+    pca <- prcomp(na.omit(allQs), scale=TRUE)
+    autoplot(pca)
+    someQs <- Q %>% select(Q2, Q4,	Q5,	Q6,	Q7,	Q8,	Q9,	Q12,	Q13,	Q15,	Q16,	Q21)
+    pca2 <- prcomp(na.omit(someQs), scale=TRUE)
+    autoplot(pca2)
   
+###############################################################################
+  # Score intervention task
+###############################################################################
+    
     # Define function
     primaryScore <- function(trait, objective){
       i <- AI %>% filter(ORIGIN == trait)
@@ -302,7 +396,31 @@ Q <- read_csv("data/cleaned/Q_excludedPpts.csv")
         hist(Q$test_ffe3_primary_z, xlab='SD', xlim=c(-3,3), ylim=c(0,80), main=NULL)
         hist(Q$test_ffe4_primary_z, xlab='SD', xlim=c(-3,3), ylim=c(0,80), main=NULL)
         title("Z-Score", line = -25, outer = TRUE)
-      
+        
+        # Check individual items
+        
+          # Correlation matrix
+          matrix_ffe <- rcorr(as.matrix( Q %>%
+              select(test_ffe1_primary_pct, test_ffe2_primary_pct, test_ffe3_primary_pct, test_ffe4_primary_pct),
+          ))
+          par(mfrow=c(1,1))
+          matrix_ffe$r
+          matrix_ffe$P
+          corrplot(matrix_ffe$r, 
+                   type = "upper",
+                   method='number',
+                   p.mat = matrix_ffe$P, 
+                   sig.level = 0.05,
+                   insig = "blank",
+                   diag=FALSE,
+                   main='')
+          
+          # Internal consistency
+          ffe_alpha_primary <- psych::alpha(Q %>%
+               select(test_ffe1_primary_pct,test_ffe2_primary_pct,test_ffe3_primary_pct,test_ffe4_primary_pct),
+               na.rm=TRUE
+          )
+        
     # Score side effects
         
         # Score as Pct of max
@@ -343,13 +461,37 @@ Q <- read_csv("data/cleaned/Q_excludedPpts.csv")
         hist(Q$test_ffe4_side_z, xlab='SD', xlim=c(-3,3), ylim=c(0,80), main=NULL)
         title("Z-Score", line = -25, outer = TRUE)
         
-        # Correlate
+        # Check items share perfect correlation
         cbind(
           cor(Q$test_ffe1_primary, Q$test_ffe1_primary_pct),
           cor(Q$test_ffe1_primary, Q$test_ffe1_primary_z),
           cor(Q$test_ffe1_side, Q$test_ffe1_side_pct),
           cor(Q$test_ffe1_side, Q$test_ffe1_side_z)
         )
+        
+        # Check individual items
+        
+          # Correlation matrix
+          matrix_ffe_side <- rcorr(as.matrix( Q %>%
+             select(test_ffe1_side_pct, test_ffe2_side_pct, test_ffe3_side_pct, test_ffe4_side_pct),
+          ))
+          par(mfrow=c(1,1))
+          matrix_ffe_side$r
+          matrix_ffe_side$P
+          corrplot(matrix_ffe_side$r, 
+                   type = "upper",
+                   method='number',
+                   p.mat = matrix_ffe_side$P, 
+                   sig.level = 0.05,
+                   insig = "blank",
+                   diag=FALSE,
+                   main='')
+          
+          # Internal consistency
+          ffe_alpha_side <- psych::alpha(Q %>%
+              select(test_ffe1_side_pct, test_ffe2_side_pct, test_ffe3_side_pct, test_ffe4_side_pct),
+              na.rm=TRUE
+          )
 
     # Total scores
       Q <- Q %>% 
@@ -362,23 +504,33 @@ Q <- read_csv("data/cleaned/Q_excludedPpts.csv")
           mutate(ffe_total_side = 
               mean(c(test_ffe1_side_z,test_ffe2_side_z,test_ffe3_side_z,test_ffe4_side_z),na.rm=TRUE) 
           )
+      
+      # Get mean of scores
+      Q <- Q %>% 
+        rowwise() %>% 
+        mutate(ffe_total_raw_primary = 
+          mean(c(test_ffe1_primary_pct,test_ffe2_primary_pct,test_ffe3_primary_pct,test_ffe4_primary_pct),na.rm=TRUE) 
+        )
+      Q <- Q %>% 
+        rowwise() %>% 
+        mutate(ffe_total_raw_side = 
+                 mean(c(test_ffe1_side_pct,test_ffe2_side_pct,test_ffe3_side_pct,test_ffe4_side_pct),na.rm=TRUE) 
+        )
+      mean(Q$ffe_total_raw_side, na.rm=TRUE)
         
       # Plot
       par(mfrow=c(1,2))
       hist(Q$ffe_total_primary, main='Total objective scores', xlab='SD', ylim=c(0,50))
       hist(Q$ffe_total_side, main='Total side effect scores', xlab='SD', ylim=c(0,50))
       
-## Loadings
-testLoadings <- as.data.frame(
-  cor(cbind(
-    Q$test_score_z,
-    Q$test_ffe_primaryTotal, 
-    Q$test_ffe_SideTotal
-  )
-  ))
-colnames(testLoadings) <- c('MCQ score', 'FFE primary score', 'FFE side score')
-rownames(testLoadings) <- c('MCQ score', 'FFE primary score', 'FFE side score')
-
+      # Correlate to eachother
+      cor(Q$ffe_total_primary, Q$ffe_total_side)
+      # Combine
+      Q <- Q %>% 
+        mutate(test_ffe_total = (ffe_total_primary + ffe_total_side) / 2)
+      par(mfrow=c(1,1))
+      hist(Q$test_ffe_total, main='Total combined score', xlab='SD', ylim=c(0,50))
+      
 ## save
 dat <- Q %>% select(
   cond, cond_dur,

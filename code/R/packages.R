@@ -11,3 +11,4 @@ install.packages('Hmisc') # Correlation matrix
 # for plots
 install.packages('corrplot') # Plotting correlation matrices
 install.packages('ggplot2') # Plots
+install.packages('ggfortify') # PCA plot
