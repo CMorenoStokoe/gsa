@@ -1,0 +1,13 @@
+estimate,control,game,t,p,df,conf.low,conf.high,method,alternative
+-0.094771242,0.49,0.59,-1.26,0.211,172,-0.243740991,0.054198507,Welch Two Sample t-test,two.sided
+-0.447712418,0.34,0.79,-6.64,4.28587E-10,166,-0.580848874,-0.314575962,Welch Two Sample t-test,two.sided
+-0.491503268,0.15,0.64,-7.66,1.49762E-12,165,-0.618189282,-0.364817254,Welch Two Sample t-test,two.sided
+-0.410457516,0.21,0.62,-6.03,9.68303E-09,171,-0.544748186,-0.276166846,Welch Two Sample t-test,two.sided
+0.021568627,0.79,0.77,0.34,0.733,173,-0.103219397,0.146356652,Welch Two Sample t-test,two.sided
+-0.238562092,0.51,0.74,-3.34,0.001,167,-0.3797394,-0.097384783,Welch Two Sample t-test,two.sided
+-0.049673203,0.91,0.96,-1.29,0.200,150,-0.125998954,0.026652549,Welch Two Sample t-test,two.sided
+-0.17124183,0.52,0.69,-2.33,0.021,170,-0.316041095,-0.026442565,Welch Two Sample t-test,two.sided
+0.075163399,0.35,0.28,1.07,0.288,170,-0.064038715,0.214365513,Welch Two Sample t-test,two.sided
+0.015686275,0.48,0.47,0.21,0.837,172,-0.134232989,0.165605538,Welch Two Sample t-test,two.sided
+-0.158169935,0.35,0.51,-2.13,0.035,173,-0.304898946,-0.011440924,Welch Two Sample t-test,two.sided
+-0.17124183,0.52,0.69,-2.33,0.021,170,-0.316041095,-0.026442565,Welch Two Sample t-test,two.sided

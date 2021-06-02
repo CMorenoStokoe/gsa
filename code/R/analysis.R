@@ -27,6 +27,22 @@ dat <- read_csv("data/cleaned/Q_scored.csv")
   h2_srq <- t.test(dat$Motivation ~ dat$cond)
   h2_dur <- t.test(dat$cond_dur ~ dat$cond)
   h2_plex <- t.test(dat$PLEX_count ~ dat$cond)
+  h2_plexs <- rbind(
+    broom::tidy( t.test(dat$Captivation ~ dat$cond) )[0,],
+    broom::tidy( t.test(dat$Captivation ~ dat$cond) )[1,],
+    broom::tidy( t.test(dat$Challenge ~ dat$cond) )[1,],
+    broom::tidy( t.test(dat$Competition ~ dat$cond) )[1,],
+    broom::tidy( t.test(dat$Completion ~ dat$cond) )[1,],
+    broom::tidy( t.test(dat$Discovery ~ dat$cond) )[1,],
+    broom::tidy( t.test(dat$Progression ~ dat$cond) )[1,],
+    broom::tidy( t.test(dat$Exploration ~ dat$cond) )[1,],
+    broom::tidy( t.test(dat$Fantasy ~ dat$cond) )[1,],
+    broom::tidy( t.test(dat$Humor ~ dat$cond) )[1,],
+    broom::tidy( t.test(dat$Nurture ~ dat$cond) )[1,],
+    broom::tidy( t.test(dat$Relaxation ~ dat$cond) )[1,],
+    broom::tidy( t.test(dat$Sensation ~ dat$cond) )[1,]
+  )
+  
   
   #h3: Better teach learners
   h3_mcq <- t.test(dat$test_score_z ~ dat$cond)
@@ -50,3 +66,4 @@ dat <- read_csv("data/cleaned/Q_scored.csv")
     ),
     "./outputs/hypothesisTests.csv"
   )
+  write_csv(h2_plexs,"./outputs/plexTTests.csv")

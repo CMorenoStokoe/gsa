@@ -160,6 +160,8 @@ Q <- read_csv("data/cleaned/Q_excludedPpts.csv")
       matrix_mcq <- rcorr(as.matrix( Q %>%
                 select(test_score,Q1,	Q2,	Q3,	Q4,	Q5,	Q6,	Q7,	Q8,	Q9,	Q10,	Q11,	Q12,	Q13,	Q14,	Q15,	Q16, Q17,	Q18,	Q19,	Q20,	Q21,	Q22)
       ))
+      write.csv(matrix_mcq$r, 'data/cleaned/mcq_corrs_r.csv', row.names = FALSE)
+      write.csv(matrix_mcq$P, 'data/cleaned/mcq_corrs_P.csv', row.names = FALSE)
       colnames(matrix_mcq$P)[1] <- 'Total Score'; colnames(matrix_mcq$r)[1] <- 'Total Score'; rownames(matrix_mcq$P)[1] <- 'Total Score'; rownames(matrix_mcq$r)[1] <- 'Total Score'
       par(mfrow=c(1,1))
       corrplot(matrix_mcq$r, 
@@ -310,12 +312,12 @@ Q <- read_csv("data/cleaned/Q_excludedPpts.csv")
     
     # Trial PCA
     allQs <- Q %>% select(Q1,	Q2,	Q3,	Q4,	Q5,	Q6,	Q7,	Q8,	Q9,	Q10,	Q11,	Q12,	Q13,	Q14,	Q15,	Q16, Q17,	Q18,	Q19,	Q20,	Q21,	Q22)
-    pca <- prcomp(na.omit(allQs), scale=TRUE)
-    autoplot(pca)
-    someQs <- Q %>% select(Q2, Q4,	Q5,	Q6,	Q7,	Q8,	Q9,	Q12,	Q13,	Q15,	Q16,	Q21)
-    pca2 <- prcomp(na.omit(someQs), scale=TRUE)
-    autoplot(pca2)
-  
+    #pca <- prcomp(na.omit(allQs), scale=TRUE)
+    mcq_pca <- psych::principal(allQs, rotate="varimax", nfactors=4, scores=TRUE)
+    pa <- fa(allQs,2,fm="pa" ,rotate="varimax")  #principal axis 
+    mcq_scree <- VSS.scree(allQs)
+    plot(pa$loadings)
+    
 ###############################################################################
   # Score intervention task
 ###############################################################################
