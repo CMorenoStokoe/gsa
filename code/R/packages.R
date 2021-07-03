@@ -1,5 +1,5 @@
 # for data manipulation
-install.packages('dplyr') # Data fram manipulation
+install.packages('dplyr') # Data manipulation
 install.packages('broom') # Tidying outputs
 install.packages('qpcR') # cbind.na utility
 # for importing csv data

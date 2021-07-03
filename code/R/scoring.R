@@ -97,7 +97,7 @@ Q <- read_csv("data/cleaned/Q_excludedPpts.csv")
       Q <- Q %>% # Adjusted for guessing
         mutate(test_score_adjusted = test_score - 8 ) 
       Q <- Q %>% # Adjusted for guessing, as percent
-        mutate(test_score_adjusted_pct = test_score_adjusted / 17 * 100 ) # 17 highest possible score
+        mutate(test_score_adjusted_pct = test_score_adjusted / 14 * 100 ) # 14 highest possible score
       Q <- Q %>% # Z-score
         mutate(test_score_z = (
           (test_score - mean(Q$test_score, na.rm=TRUE)) / sd(Q$test_score, na.rm=TRUE)
