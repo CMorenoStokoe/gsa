@@ -1,13 +1,13 @@
 {  
   "compilerOptions": {  
-  "target": "es2017",  
+  "target": "es2019",  
     "module": "commonjs",  
     //"rootDir": "src",  
     //"outDir": "dist",  
     "sourceMap": true,  
     "typeRoots": ["@types", "node_modules/@types"],
     "resolveJsonModule": true,  
-    "lib": ["es6", "dom"],  
+    "lib": ["es2019", "dom"],  
     "esModuleInterop": true  
   }
 }  

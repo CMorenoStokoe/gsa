@@ -1,13 +1,32 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-/* eslint-disable @typescript-eslint/ban-types */
-const index_1 = require("./index");
+const format_1 = require("./format");
 const trait_estimates_json_1 = __importDefault(require("./trait estimates.json"));
 const trait_extra_info_1 = require("./trait extra info");
 const objects_to_csv_1 = __importDefault(require("objects-to-csv"));
+const jsnx = __importStar(require("jsnetworkx"));
 // Prepare data
 const seed = [
     { source: 'Exercise', target: 'Coffee intake' },
@@ -116,13 +135,26 @@ const nodes = () => {
     });
     return output;
 };
+/*
 // Run analysis
-const results = index_1.simulateEverything(edges(), nodes(), true, true, 'noLoopRemoval');
+const results = simulateEverything(
+    edges(),
+    nodes(),
+    true,
+    true,
+    'noLoopRemoval'
+);
+
 // Test results
-const t = (id, criteria) => {
+const t = (
+    id: string,
+    criteria: Array<'>' | '<' | '=' | number>[]
+): boolean => {
     const sum = results.sorted.bySumOfEffects.filter((x) => x.origin === id)[0]
         .sumOfEffects;
-    const goodness = results.sorted.byBestEffects.filter((x) => x.origin === id)[0].sumOfEffects;
+    const goodness = results.sorted.byBestEffects.filter(
+        (x) => x.origin === id
+    )[0].sumOfEffects;
     let effectDepression = results.sorted.byEffectOnNodes
         .filter((x) => x.node === 'Depression')[0]
         .ranks.filter((x) => x.origin === id)[0].results.Depression;
@@ -135,7 +167,7 @@ const t = (id, criteria) => {
     if (effectEveningness === undefined) {
         effectEveningness = 0;
     }
-    const answers = [
+    const answers: Array<number> = [
         sum,
         goodness,
         effectDepression,
@@ -161,19 +193,24 @@ const t = (id, criteria) => {
                 break;
         }
         if (o === false) {
-            console.log('ERROR: Failed test', `${id}, #${i} (${answers[i]} ! ${q} (${t}) ${a})`);
+            console.log(
+                'ERROR: Failed test',
+                `${id}, #${i} (${answers[i]} ! ${q} (${t}) ${a})`
+            );
             return false;
         }
     }
     return true;
 };
-const tests = {
+const tests: Record<string, boolean> = {
     sameNNodes: nodes().length === 17,
     sameNEdges: edges().length === 42,
     correctTotalPossibleInterventions: results.unsorted.length === 17,
-    highestRankingIsDirect: results.sorted.byEffectOnNodes[0].ranks[0].origin === 'Depression',
-    lowerRankingsAreLower: results.sorted.byEffectOnNodes[6].ranks[1].results.Alcohol >=
-        results.sorted.byEffectOnNodes[6].ranks[2].results.Alcohol &&
+    highestRankingIsDirect:
+        results.sorted.byEffectOnNodes[0].ranks[0].origin === 'Depression',
+    lowerRankingsAreLower:
+        results.sorted.byEffectOnNodes[6].ranks[1].results.Alcohol >=
+            results.sorted.byEffectOnNodes[6].ranks[2].results.Alcohol &&
         results.sorted.byEffectOnNodes[6].ranks[3].results.Alcohol >=
             results.sorted.byEffectOnNodes[6].ranks[4].results.Alcohol,
     sensibleResult_eveningness: t('Eveningness', [
@@ -202,9 +239,12 @@ const tests = {
     ]),
 };
 tests;
+
 //  Format outputs for saving
-const formatDataForCSV = (interventions) => {
-    const formattedData = interventions.map((x) => {
+const formatDataForCSV = (
+    interventions: Intervention[]
+): InterventionSummary[] => {
+    const formattedData: InterventionSummary[] = interventions.map((x) => {
         return {
             ORIGIN: x.origin,
             SCORE: x.sumOfEffects,
@@ -231,12 +271,64 @@ const formatDataForCSV = (interventions) => {
     return formattedData;
 };
 const output = formatDataForCSV(results.sorted.byBestEffects);
+
 // Save results
 (async () => {
-    const csv = new objects_to_csv_1.default(output);
+    const csv = new ObjectsToCsv(output);
+
     // Save to file:
     await csv.toDisk('allInterventionScores.csv');
+
     // Return the CSV file as string:
     console.log(await csv.toString());
 })();
+
+*/
+// Perform network property analysis
+const G = format_1.formatData(edges(), nodes());
+const properties = {};
+// Neighbourhood
+for (const node of G.nodes()) {
+    properties[node] = {}; // Init dicts
+    properties[node].predecessors = G.predecessors(node).length;
+    properties[node].successors = G.successors(node).length;
+    properties[node].neighbours =
+        G.predecessors(node).length + G.successors(node).length;
+}
+// Shortest paths
+const shortestPaths = Object.fromEntries(jsnx.shortestPath(G));
+for (const [key, value] of Object.entries(shortestPaths)) {
+    const paths = Object.fromEntries(value);
+    for (const [k, v] of Object.entries(paths)) {
+        paths[k] = v.length - 1;
+    }
+    for (const node of G.nodes()) {
+        if (paths[node]) {
+            properties[key][`p_${node}`] = paths[node];
+        }
+        else {
+            properties[key][`p_${node}`] = 0;
+        }
+    }
+}
+// Betweeness centrality
+const centrality = Object.fromEntries(jsnx.betweennessCentrality(G, { weight: 'b' }));
+for (const [key, value] of Object.entries(centrality)) {
+    properties[key].betweennessCentrality = value;
+}
+// Eigenvector centrality
+const G_undir = jsnx.convertToUndirected(G);
+const g_undir_eigen = Object.fromEntries(jsnx.eigenvectorCentrality(G_undir, { weight: 'b' }));
+for (const [key, value] of Object.entries(g_undir_eigen)) {
+    properties[key].eigenvectorCentrality = value;
+}
+// Save results
+(async () => {
+    const csv = new objects_to_csv_1.default(Object.entries(properties));
+    // Save to file:
+    await csv.toDisk('networkProperties.csv');
+    // Return the CSV file as string:
+    console.log(await csv.toString());
+})();
+debugger;
 //# sourceMappingURL=analysis.js.map

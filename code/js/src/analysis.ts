@@ -1,9 +1,11 @@
 /* eslint-disable @typescript-eslint/ban-types */
 import { simulateEverything } from './index';
+import { formatData } from './format';
 import { Node, Edge, Intervention, InterventionSummary } from '../@types/index';
 import estimates from './trait estimates.json';
 import { nodeValues, isGood } from './trait extra info';
 import ObjectsToCsv from 'objects-to-csv';
+import * as jsnx from 'jsnetworkx';
 
 // Prepare data
 const seed: Edge[] = [
@@ -122,6 +124,7 @@ const nodes = (): Node[] => {
     return output;
 };
 
+/*
 // Run analysis
 const results = simulateEverything(
     edges(),
@@ -268,3 +271,59 @@ const output = formatDataForCSV(results.sorted.byBestEffects);
     // Return the CSV file as string:
     console.log(await csv.toString());
 })();
+
+*/
+
+// Perform network property analysis
+const G: jsnx.classes.DiGraph = formatData(edges(), nodes());
+const properties = {};
+// Neighbourhood
+for (const node of G.nodes()) {
+    properties[node] = {}; // Init dicts
+    properties[node].predecessors = G.predecessors(node).length;
+    properties[node].successors = G.successors(node).length;
+    properties[node].neighbours =
+        G.predecessors(node).length + G.successors(node).length;
+}
+// Shortest paths
+const shortestPaths = Object.fromEntries(jsnx.shortestPath(G));
+for (const [key, value] of Object.entries(shortestPaths)) {
+    const paths = Object.fromEntries(value);
+    for (const [k, v] of Object.entries(paths)) {
+        paths[k] = v.length - 1;
+    }
+    for (const node of G.nodes()) {
+        if (paths[node]) {
+            properties[key][`p_${node}`] = paths[node];
+        } else {
+            properties[key][`p_${node}`] = 0;
+        }
+    }
+}
+// Betweeness centrality
+const centrality = Object.fromEntries(
+    jsnx.betweennessCentrality(G, { weight: 'b' })
+);
+for (const [key, value] of Object.entries(centrality)) {
+    properties[key].betweennessCentrality = value;
+}
+// Eigenvector centrality
+const G_undir = jsnx.convertToUndirected(G);
+const g_undir_eigen = Object.fromEntries(
+    jsnx.eigenvectorCentrality(G_undir, { weight: 'b' })
+);
+for (const [key, value] of Object.entries(g_undir_eigen)) {
+    properties[key].eigenvectorCentrality = value;
+}
+// Save results
+(async () => {
+    const csv = new ObjectsToCsv(Object.entries(properties));
+
+    // Save to file:
+    await csv.toDisk('networkProperties.csv');
+
+    // Return the CSV file as string:
+    console.log(await csv.toString());
+})();
+
+debugger;
