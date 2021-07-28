@@ -19,35 +19,38 @@ dat <- read_csv("data/cleaned/Q_scored.csv")
     descriptives <- describe( dat %>% select(-cond, -FreeText) ) %>% select(n, mean, sd, min, max)
     descr_exp <- describe(dat %>% filter(cond == 'Exp')) %>% select(n, mean, sd, min, max)
     descr_ctr <- describe(dat %>% filter(cond == 'Ctr')) %>% select(n, mean, sd, min, max)
+    
+    # correlate learning measures
+    rcorr(dat$test_score_z, dat$test_ffe_total)
   
-  #h1: Structure learners
-  h1_srq <- t.test(dat$Direction ~ dat$cond)
+  #h1: Structure
+  h1_srq <- t.test(dat$Direction ~ dat$cond, var.equal = TRUE)
   
-  #h2: Motivate learners
-  h2_srq <- t.test(dat$Motivation ~ dat$cond)
-  h2_dur <- t.test(dat$cond_dur ~ dat$cond)
-  h2_plex <- t.test(dat$PLEX_count ~ dat$cond)
+  #h2: Motivation
+  h2_srq <- t.test(dat$Motivation ~ dat$cond, var.equal = TRUE)
+  h2_dur <- t.test(dat$cond_dur ~ dat$cond, var.equal = TRUE)
+  h2_plex <- t.test(dat$PLEX_count ~ dat$cond, var.equal = TRUE)
   h2_plexs <- rbind(
-    broom::tidy( t.test(dat$Captivation ~ dat$cond) )[0,],
-    broom::tidy( t.test(dat$Captivation ~ dat$cond) )[1,],
-    broom::tidy( t.test(dat$Challenge ~ dat$cond) )[1,],
-    broom::tidy( t.test(dat$Competition ~ dat$cond) )[1,],
-    broom::tidy( t.test(dat$Completion ~ dat$cond) )[1,],
-    broom::tidy( t.test(dat$Discovery ~ dat$cond) )[1,],
-    broom::tidy( t.test(dat$Progression ~ dat$cond) )[1,],
-    broom::tidy( t.test(dat$Exploration ~ dat$cond) )[1,],
-    broom::tidy( t.test(dat$Fantasy ~ dat$cond) )[1,],
-    broom::tidy( t.test(dat$Humor ~ dat$cond) )[1,],
-    broom::tidy( t.test(dat$Nurture ~ dat$cond) )[1,],
-    broom::tidy( t.test(dat$Relaxation ~ dat$cond) )[1,],
-    broom::tidy( t.test(dat$Sensation ~ dat$cond) )[1,]
+    broom::tidy( t.test(dat$Captivation ~ dat$cond, var.equal = TRUE) )[0,],
+    broom::tidy( t.test(dat$Captivation ~ dat$cond, var.equal = TRUE) )[1,],
+    broom::tidy( t.test(dat$Challenge ~ dat$cond, var.equal = TRUE) )[1,],
+    broom::tidy( t.test(dat$Competition ~ dat$cond, var.equal = TRUE) )[1,],
+    broom::tidy( t.test(dat$Completion ~ dat$cond, var.equal = TRUE) )[1,],
+    broom::tidy( t.test(dat$Discovery ~ dat$cond, var.equal = TRUE) )[1,],
+    broom::tidy( t.test(dat$Progression ~ dat$cond, var.equal = TRUE) )[1,],
+    broom::tidy( t.test(dat$Exploration ~ dat$cond, var.equal = TRUE) )[1,],
+    broom::tidy( t.test(dat$Fantasy ~ dat$cond, var.equal = TRUE) )[1,],
+    broom::tidy( t.test(dat$Humor ~ dat$cond, var.equal = TRUE) )[1,],
+    broom::tidy( t.test(dat$Nurture ~ dat$cond, var.equal = TRUE) )[1,],
+    broom::tidy( t.test(dat$Relaxation ~ dat$cond, var.equal = TRUE) )[1,],
+    broom::tidy( t.test(dat$Sensation ~ dat$cond, var.equal = TRUE) )[1,]
   )
   
   
-  #h3: Better teach learners
-  h3_mcq <- t.test(dat$test_score_z ~ dat$cond)
-  h3_ffe <- t.test(dat$test_ffe_total ~ dat$cond)
-  h3_dur <- t.test(dat$test_dur  ~ dat$cond)
+  #h3: Learning
+  h3_mcq <- t.test(dat$test_score_z ~ dat$cond, var.equal = TRUE)
+  h3_ffe <- t.test(dat$test_ffe_total ~ dat$cond, var.equal = TRUE)
+  h3_dur <- t.test(dat$test_dur  ~ dat$cond, var.equal = TRUE)
   
 # Save
   write_csv(dat, "./outputs/data.csv")
