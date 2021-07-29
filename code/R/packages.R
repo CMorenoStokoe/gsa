@@ -2,6 +2,7 @@
 install.packages('dplyr') # Data manipulation
 install.packages('broom') # Tidying outputs
 install.packages('qpcR') # cbind.na utility
+install.packages('tidyverse') # tidy and purr
 # for importing csv data
 install.packages('readr') # Reading csv
 install.packages('Rcpp') 
