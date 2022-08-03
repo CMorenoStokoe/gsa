@@ -13,3 +13,4 @@ install.packages('Hmisc') # Correlation matrix
 install.packages('corrplot') # Plotting correlation matrices
 install.packages('ggplot2') # Plots
 install.packages('ggfortify') # PCA plot
+install.packages('sm') # Distribution plot

@@ -1,7 +1,7 @@
 ## Initialisation
 lapply(c("psych","readr","broom", "Hmisc", "corrplot","qpcR","dplyr","ggplot2", "ggfortify")
        , require, character.only = TRUE)
-setwd("C:/py/gsa") # Set WD
+setwd("C:/git/gsa") # Set WD
 
 ## Read in cleaned data
 Q <- read_csv("data/cleaned/Q_excludedPpts.csv")
@@ -68,8 +68,46 @@ Q <- read_csv("data/cleaned/Q_excludedPpts.csv")
     hist(Q$Usability[Q$cond == 'Exp'], ylim=c(0,20), main='Playing game', xlab='Usability')
     hist(Q$Usability[Q$cond == 'Ctr'], ylim=c(0,20), main='Using control', xlab='Usability')
     title("Usability", line = -1, outer = TRUE)
-    
+  
+  # Compare answers on each question
+      # Means
+      Q %>% group_by(cond) %>% summarise(mean=mean(test_score))
+      t.test(Q$cond, Q$test_score, na.rm=TRUE)
+      
+      # Individual Qs
+      Q_mcq <- data.frame(Ctr=number, )
+      for(q in Q %>% dplyr::select(Q1:Q22) ){
+        tab <- table(Q$cond, q)
+        chi <- chisq.test( tab )
+        print(tidy(chi))
+      }
+      
+      chi_fn <- function(x, stat){
+        chi <- tidy( chisq.test(table( Q$cond, x )) )
+        output <- as.numeric(chi[1,stat])
+        return(output)
+      }
+      mcq_chi <- rbind(
+        lapply( Q %>% filter(cond=='Exp') %>% dplyr::select(Q1:Q22) , mean, na.rm=TRUE),
+        lapply( Q%>% filter(cond=='Ctr') %>% dplyr::select(Q1:Q22) , mean, na.rm=TRUE),
+        lapply( Q %>% dplyr::select(Q1:Q22), chi_fn, 1),
+        lapply( Q %>% dplyr::select(Q1:Q22), chi_fn, 2),
+        lapply( Q %>% dplyr::select(Q1:Q22), chi_fn, 3)
+      )
+      rownames(mcq_chi) <- c(
+        'Game',
+        'Control',
+        colnames(tidy( chisq.test(table( Q$cond, Q$Q1 )) ))[1],
+        colnames(tidy( chisq.test(table( Q$cond, Q$Q1 )) ))[2],
+        colnames(tidy( chisq.test(table( Q$cond, Q$Q1 )) ))[3]
+      )
+      mcq_chi <- as.data.frame(mcq_chi)
+      write_csv(as.data.frame(mcq_chi), 'outputs/mcq_chi.csv')
+      
   # Score MCQ
+      
+    #t
+    t.test(Q$test_score ~ Q$cond)
   
     # Convert score to z-score
     Q <- Q %>% # Z-score

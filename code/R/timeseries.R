@@ -1,7 +1,7 @@
 ## initialisation
 lapply(c("dplyr", "psych","readr","broom", "Hmisc", "corrplot","qpcR","ggplot2", "ggfortify", "gridExtra")
        , require, character.only = TRUE)
-setwd("C:/py/gsa") # Set WD
+setwd("C:/git/gsa") # Set WD
 
 ## Read in data
 dat <- read_csv("data/cleaned/gameplay.csv")
@@ -107,6 +107,41 @@ dat$t <- as.numeric(dat$datetime, units="secs")
   dat <- filter(dat, t_0_m<=50)
     print(c('filter by excessive time', nrow(dat), nrow(distinct(dat['user']))))
     
+## Plots
+    
+    # Plot scores (move lower)
+    ggplot( dat ) +
+    geom_density( aes(x = score, y = ..density.., fill = user, colour = user), alpha=.6) +
+      scale_fill_manual(values=c("#d8d8d8", "#6cafb4")) +
+      scale_colour_manual(values=c("#d8d8d8", "#6cafb4")) +
+      theme_bw() + xlab('Play experiences (n)') + ylab('Participants (proportion)') +
+      theme(panel.border = element_blank(), panel.grid.major = element_blank(),panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
+    
+    dat$t_0_5m[dat$t_0_5m>=30] <- '30+'
+    dat$`Duration of play (mins)` <- as.factor(dat$t_0_5m)
+    
+    ggplot( dat %>% filter(`Duration of play (mins)` %in% c('0','30+')) ) +
+      scale_fill_manual(values=c("#C4DFAA", "#73A9AD")) +
+      scale_colour_manual(values=c("#C4DFAA", "#73A9AD")) +
+      geom_density( aes(x = score_5m_round, y = ..density.., fill=`Duration of play (mins)`, colour=`Duration of play (mins)`), alpha=.33) +
+      theme_bw() + xlab('Score') + ylab('Solutions (proportion)') +
+      theme(panel.border = element_blank(), panel.grid.major = element_blank(),panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
+    
+    # Players average scores
+    ggplot( summ ) +
+      geom_density(aes(x=scores_mean, y=..density.., fill='#73A9AD'), alpha=.6) +
+      scale_fill_manual(values=c("#73A9AD")) +
+      theme_bw() + xlab('Mean score') + ylab('Players (proportion)') +
+      theme(panel.border = element_blank(), panel.grid.major = element_blank(),panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
+    
+    # Players intevention n
+    summ$n[summ$n>100] <- 100
+    ggplot( summ ) +
+      geom_density(aes(x=n, y=..density.., fill='#73A9AD'), alpha=.6) +
+      scale_fill_manual(values=c("#73A9AD")) +
+      theme_bw() + xlab('Number of solutions suggested') + ylab('Players (proportion)') +
+      theme(panel.border = element_blank(), panel.grid.major = element_blank(),panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
+    
 ## Results
 
   # Distributions (non-normal)
@@ -126,7 +161,7 @@ dat$t <- as.numeric(dat$datetime, units="secs")
     LR_raw_p <- cor.test(dat$t_0_m, dat$score, method = ("spearman")) # p=6.122e-12
     LR_raw_r2 <- LR_raw_r ^ 2 # 2% variance explained
     LR_raw_coef <- lm(dat$score ~ dat$t_0_m) # Learning rate per minute = .9%
-    
+    summary(LR_raw_coef)
     # Plot
     results <- ggplot(
       dat, aes(x=t_0_5m, y=score_5m, group=t_0_5m)
@@ -183,6 +218,15 @@ dat$t <- as.numeric(dat$datetime, units="secs")
         ncol=2
         
       )
+      
+      # Final score over time plot
+      ggplot(dat, aes(x=t_0_m, y=score_5m_round) ) + 
+        geom_count(colour='#595959') + 
+        geom_smooth(method=lm, colour = '#73A9AD')  + 
+        scale_size_area(max_size = 2) +
+        xlab('Duration of play (game)') +
+        ylab('Score')+
+      theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(),panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
       
       # Lines
       scoreOverTime <- dat %>%

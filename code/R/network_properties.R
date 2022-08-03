@@ -1,7 +1,7 @@
 # Initialise
 library('dplyr')
 library('readr')
-setwd("C:/py/gsa") # Set WD
+setwd("C:/git/gsa") # Set WD
 
 data <- read_csv("data/cleaned/gameplay.csv")
 g <- read_csv("data/cleaned/network_properties.csv")
@@ -184,7 +184,42 @@ AI <- read_csv("data/cleaned/allPossibleInterventions.csv")
     broom::tidy( t.test(dat$eigenvectorCentrality ~ dat$group, var.equal = TRUE) )[1,]
   )
   compareGroups$Measures = c('score_obj', 'score_side', 'cmplx_steps', 'Predeessors', 'Successors', 'Neighbours', 'betweennessCentrality', 'eigenvectorCentrality')
-  compareGroups[, c(11,1,2,3,4,5,6,7,8,9, 10)]
+    
+  write_csv(  compareGroups[, c(11,1,2,3,4,5,6,7,8,9, 10)], 'outputs/solutions.csv')
+
+  ## Heatmap of interventions
+  write_csv(  
+    dat %>% group_by(group, target) %>% summarise( 
+      n = n(),
+      centrality = mean(eigenvectorCentrality),
+      neighbours = mean(Neighbours)
+    ),
+    'outputs/solutions_heatmap.csv'
+  )
+  
+  
+  mode <- function(x) { # https://rpubs.com/Mentors_Ubiqum/using_mode
+    ux <- unique(x)
+    ux[which.max(tabulate(match(x, ux)))]
+  }
+  
+  write_csv(  
+    dat %>% group_by(group, objective) %>% summarise( mode = mode(target) ),
+    'outputs/solutions_forEach.csv'
+  )
+  
+  sd ( 
+    (
+    dat %>% filter(group=='human') %>% group_by(user) %>% summarise( n = n() ) 
+    )$n
+  )
+  
+  dat %>% filter(group=='human') %>% summarise(
+    max = max(score_obj),
+    min = min(score_obj),
+    mean = mean(score_obj),
+    sd = sd(score_obj) 
+    )
   
   # Within subjects comparisons
   # make data individual level
