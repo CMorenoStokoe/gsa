@@ -9,6 +9,7 @@ install.packages('Rcpp')
 # for analysis
 install.packages('psych') # Descriptives
 install.packages('Hmisc') # Correlation matrix
+install.packages('leaps') # Stepwise regression
 # for plots
 install.packages('corrplot') # Plotting correlation matrices
 install.packages('ggplot2') # Plots

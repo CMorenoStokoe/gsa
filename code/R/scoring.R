@@ -89,7 +89,9 @@ Q <- read_csv("data/cleaned/Q_excludedPpts.csv")
       }
       mcq_chi <- rbind(
         lapply( Q %>% filter(cond=='Exp') %>% dplyr::select(Q1:Q22) , mean, na.rm=TRUE),
-        lapply( Q%>% filter(cond=='Ctr') %>% dplyr::select(Q1:Q22) , mean, na.rm=TRUE),
+        lapply( Q %>% filter(cond=='Ctr') %>% dplyr::select(Q1:Q22) , mean, na.rm=TRUE),
+        lapply( Q %>% filter(cond=='Exp') %>% dplyr::select(Q1:Q22) , sd, na.rm=TRUE),
+        lapply( Q %>% filter(cond=='Ctr') %>% dplyr::select(Q1:Q22) , sd, na.rm=TRUE),
         lapply( Q %>% dplyr::select(Q1:Q22), chi_fn, 1),
         lapply( Q %>% dplyr::select(Q1:Q22), chi_fn, 2),
         lapply( Q %>% dplyr::select(Q1:Q22), chi_fn, 3)
@@ -97,6 +99,8 @@ Q <- read_csv("data/cleaned/Q_excludedPpts.csv")
       rownames(mcq_chi) <- c(
         'Game',
         'Control',
+        'Game SD',
+        'Control SD',
         colnames(tidy( chisq.test(table( Q$cond, Q$Q1 )) ))[1],
         colnames(tidy( chisq.test(table( Q$cond, Q$Q1 )) ))[2],
         colnames(tidy( chisq.test(table( Q$cond, Q$Q1 )) ))[3]

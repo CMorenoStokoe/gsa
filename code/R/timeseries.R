@@ -42,6 +42,46 @@ dat$t <- as.numeric(dat$datetime, units="secs")
       score_mdiff = score - scores_mean
     )
   
+  # Quick estimate time x score measure
+  summary(
+    lm(dat$t_0_s ~ dat$score)
+  )
+  t.test(
+    (dat %>% filter(condition=='game', t_0_m < 5))$score,
+    (dat %>% filter(condition=='game', t_0_m >= 20))$score
+  )
+  mean((dat %>% filter(condition=='game', t_0_m < 5))$score)
+  mean((dat %>% filter(condition=='game', t_0_m >= 20))$score)
+  sd((dat %>% filter(condition=='game', t_0_m < 5))$score)
+  sd((dat %>% filter(condition=='game', t_0_m >= 20))$score)
+  grouped_by_time <- dat %>% 
+    filter(condition=='game') %>% 
+    mutate(
+      group = case_when(
+        t_0_m<5 ~ 5, 
+        t_0_m<10 ~ 10, 
+        t_0_m<15 ~ 15, 
+        t_0_m<20 ~ 20, 
+        t_0_m<25 ~ 25, 
+        t_0_m<30 ~ 30, 
+        t_0_m<35 ~ 35, 
+        t_0_m<40 ~ 40, 
+        t_0_m<45 ~ 45, 
+        t_0_m<50 ~ 50, 
+        t_0_m<55 ~ 55, 
+        t_0_m<60 ~ 50, 
+        TRUE ~ 0
+      )
+    )
+  learningOverTime <- grouped_by_time %>% 
+    group_by(group) %>%
+    filter(!is.na(score)) %>%
+    summarise(
+      mean = mean(score, na.rm=TRUE),
+      sd = sd(score, na.rm = TRUE),
+      n=n()
+    )
+  
   # Create interval summary variables
   
     # Round minutes (t_0_5m)
