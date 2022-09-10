@@ -1,15 +1,16 @@
 ## Initialisation
 library('readxl')
+library('readr')
 library('psych')
 library('dplyr')
-library('readr')
 library('broom')
 library('Hmisc')
 library('tidyverse')
 library('ggplot2')
 library('sm')
 library('leaps')
-setwd("C:/git/gsa") # Set WD
+library('MASS')
+setwd("C:/py/gsa") # Set WD
 
 ## Read in data
 dat <- read_csv("data/cleaned/Q_scored.csv")
@@ -115,7 +116,8 @@ gameplay <- gameplay %>% rename(
       n = n(),
       dur_0 = min(dur),
       dur_1 = max(dur),
-      dur = difftime( max(dur), min(dur), units = 'mins')
+      dur = difftime( max(dur), min(dur), units = 'mins'),
+      score = mean(score)
     )
   times_raw$dur[times_raw$dur<1] <- NA
   times_raw$dur[times_raw$dur>60] <- 60
@@ -125,6 +127,11 @@ gameplay <- gameplay %>% rename(
   
   dat_adj <- dat %>% filter(cond_dur > 1)
   t.test(dat_adj$cond_dur  ~ dat_adj$cond)
+  
+  # lm
+  summary(
+    lm(as.numeric(times_raw$dur) ~ times_raw$n)
+  )
   
   # Combine with predicted dur
   times_combined <- rbind(
@@ -158,24 +165,80 @@ gameplay <- gameplay %>% rename(
   #Desciprtives
   grouped_by_time <- dat %>% 
     mutate(
-      group = case_when(
-        PLEX_count<3 ~ 3, 
-        PLEX_count<6 ~ 6, 
-        PLEX_count<9 ~ 9, 
-        PLEX_count<12 ~ 12, 
-        PLEX_count<15 ~ 15, 
-        PLEX_count<18 ~ 18, 
-        TRUE ~ 0
+      plex_count_group = case_when(
+        PLEX_count<3 ~ "0-2", 
+        PLEX_count<6 ~ "3-5", 
+        PLEX_count<8 ~ "5-7", 
+        PLEX_count<11 ~ "8-10", 
+        TRUE ~ "11+"
       )
     )
+  
+  grouped_by_time_summ <- grouped_by_time %>%
+    group_by(plex_count_group) %>%
+    select(plex_count_group, cond_dur) %>%
+    summarise(
+      n = n(),
+      mean = mean(cond_dur),
+      min = min(cond_dur),
+      max = max(cond_dur),
+      sd = sd(cond_dur)
+    )
+  
+  grouped_by_time_summ <- grouped_by_time %>%
+    filter(cond == 'Exp') %>%
+    group_by(PLEX_count) %>%
+    select(PLEX_count, cond_dur) %>%
+    summarise(
+      n = n(),
+      mean = mean(cond_dur),
+      min = min(cond_dur),
+      max = max(cond_dur),
+      sd = sd(cond_dur)
+    ) 
+  
+  write_csv(as.data.frame(grouped_by_time_summ), "./outputs/plex_dur_game.csv")
+  
+  # Regressions
+  summary(lm(gameplay$dur ~ gameplay$score))
+  summary(lm(grouped_by_time_summ$cond_dur ~ grouped_by_time_summ$score))
+  
+  polr(as.factor(grouped_by_time$plex_count_group) ~ grouped_by_time$cond_dur)
+  
+  # Plots
+  
+  ggplot(DF, aes(x = NewX, fill = species))+
+    geom_ribbon(aes(ymin = NewY-normval, ymax = NewY+normval))+
+    scale_y_continuous(breaks = unique(DF$NewY), labels = levels(DF$species))+
+    scale_x_continuous(breaks = unique(DF$NewX), labels = levels(DF$X_var), name = "")
+  
   plexOverTime <- grouped_by_time %>% 
-    group_by(group) %>%
+    group_by(plex_count_group) %>%
     filter(!is.na(cond_dur)) %>%
     summarise(
       mean = mean(cond_dur, na.rm=TRUE),
       sd = sd(cond_dur, na.rm = TRUE),
       n=n()
     )
+  
+  plot(dat$PLEX_count, dat$cond_dur)
+  
+  # DF
+  gameplay %>% 
+    filter(condition=='game') %>% 
+    table(
+      score, condition
+    )
+    summarise(
+      score = n()
+    )
+  
+  t.test(
+    gameplay %>% filter(condition=='game') %>% dplyr::select(score),
+    gameplay %>% filter(condition=='iv') %>% dplyr::select(score)
+  )
+  
+  nrow(gameplay %>% filter(condition=='game'))
   
   #Model
   fit <- summary(
