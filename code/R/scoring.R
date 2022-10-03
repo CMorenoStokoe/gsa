@@ -68,6 +68,14 @@ Q <- read_csv("data/cleaned/Q_excludedPpts.csv")
     hist(Q$Usability[Q$cond == 'Exp'], ylim=c(0,20), main='Playing game', xlab='Usability')
     hist(Q$Usability[Q$cond == 'Ctr'], ylim=c(0,20), main='Using control', xlab='Usability')
     title("Usability", line = -1, outer = TRUE)
+    
+    #DIST - Usability
+    ggplot( Q ) +
+      geom_density( aes(x = Usability, y = ..density.., fill = cond, colour = cond), alpha=.6) +
+      scale_fill_manual(values=c("#d8d8d8", "#6cafb4")) +
+      scale_colour_manual(values=c("#d8d8d8", "#6cafb4")) +
+      theme_bw() + xlab('Usability (%)') + ylab('Participants (proportion)') +
+      theme(panel.border = element_blank(), panel.grid.major = element_blank(),panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
   
   # Compare answers on each question
       # Means
@@ -112,6 +120,15 @@ Q <- read_csv("data/cleaned/Q_excludedPpts.csv")
       
     #t
     t.test(Q$test_score ~ Q$cond)
+    
+    #DIST - MCQ
+    ggplot( Q ) +
+      geom_density( aes(x = test_score, y = ..density.., fill = cond, colour = cond), alpha=.6) +
+      scale_fill_manual(values=c("#d8d8d8", "#6cafb4")) +
+      scale_colour_manual(values=c("#d8d8d8", "#6cafb4")) +
+      theme_bw() + xlab('Score on MCQ (0-22)') + ylab('Participants (proportion)') +
+      theme(panel.border = element_blank(), panel.grid.major = element_blank(),panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
+    
   
     # Convert score to z-score
     Q <- Q %>% # Z-score

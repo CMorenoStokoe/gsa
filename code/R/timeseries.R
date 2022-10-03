@@ -28,9 +28,9 @@ dat$t <- as.numeric(dat$datetime, units="secs")
       scores_mean = mean(score),
       scores_median = median(score),
       scores_sd = sd(score),
-      scores_diff = max(score)-min(score)
-    )
-    summ <- distinct(summ)
+      scores_diff = max(score)-min(score),
+      condition = first(condition)
+    )~
   
   # Compute new variables
   dat <- dat %>%
@@ -41,6 +41,42 @@ dat$t <- as.numeric(dat$datetime, units="secs")
       score_sd = (score - scores_mean) / scores_sd, # Relative learning score (score_sd)
       score_mdiff = score - scores_mean
     )
+  
+  #DIST- Time
+  unique(dat$user)
+  nrow(unique(dat %>% filter(condition=='iv') %>% dplyr::select(user)))
+  nrow(unique(dat %>% filter(condition=='game') %>% dplyr::select(user)))
+  
+  ggplot( 
+    dat %>% group_by(user, condition) %>% summarise(t_0_m = max(t_0_m))
+  ) +
+    geom_density( aes(x = t_0_m, y = ..density.., fill = condition, colour = condition), alpha=.6) +
+    scale_fill_manual(values=c("#6cafb4","#d8d8d8")) +
+    scale_colour_manual(values=c("#6cafb4","#d8d8d8")) +
+    theme_bw() + xlab('Duration (min)') + ylab('Participants (proportion)') +
+    xlim(0,60) +
+    theme(panel.border = element_blank(), panel.grid.major = element_blank(),panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
+  
+  
+  summ %>% 
+    group_by(condition) %>% 
+    summarise(mean = mean(t_diff)/60)
+  
+  ggplot( dat ) +
+    geom_density( aes(x = t_0_m, y = ..density.., fill = condition, colour = condition), alpha=.6) +
+    scale_fill_manual(values=c("#6cafb4","#d8d8d8")) +
+    scale_colour_manual(values=c("#6cafb4","#d8d8d8")) +
+    theme_bw() + xlab('Duration (min)') + ylab('Participants (proportion)') +
+    xlim(0,60) +
+    theme(panel.border = element_blank(), panel.grid.major = element_blank(),panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
+  
+  #DIST - Score
+  ggplot( dat) +
+    geom_density( aes(x = score, y = ..density.., fill = condition, colour = condition), alpha=.6) +
+    scale_fill_manual(values=c("#6cafb4","#d8d8d8")) +
+    scale_colour_manual(values=c("#6cafb4","#d8d8d8")) +
+    theme_bw() + xlab('Duration (min)') + ylab('Participants (proportion)') +
+    theme(panel.border = element_blank(), panel.grid.major = element_blank(),panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
   
   # Quick estimate time x score measure
   summary(
