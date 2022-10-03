@@ -1,16 +1,28 @@
 ## Initialisation
 library('readxl')
+<<<<<<< Updated upstream
 library('readr')
 library('psych')
 library('dplyr')
+=======
+library('dplyr')
+library('readr')
+library('ggplot2')
+
+library('psych')
+>>>>>>> Stashed changes
 library('broom')
 library('Hmisc')
 library('tidyverse')
-library('ggplot2')
 library('sm')
 library('leaps')
+<<<<<<< Updated upstream
 library('MASS')
 setwd("C:/py/gsa") # Set WD
+=======
+
+setwd("C:/git/gsa") # Set WD
+>>>>>>> Stashed changes
 
 ## Read in data
 dat <- read_csv("data/cleaned/Q_scored.csv")
@@ -103,8 +115,15 @@ gameplay <- gameplay %>% rename(
   dat_plex <- t(as.matrix(dat_plex[-1]))
   colnames(dat_plex) <- c('Ctr', 'Exp')
   
-  
   t.test(dat$PLEX_count ~ dat$cond)
+  
+  #DIST - Plex
+  ggplot( dat ) +
+    geom_density( aes(x = PLEX_count, y = ..density.., fill = cond, colour = cond), alpha=.6) +
+    scale_fill_manual(values=c("#d8d8d8", "#6cafb4")) +
+    scale_colour_manual(values=c("#d8d8d8", "#6cafb4")) +
+    theme_bw() + xlab('Playful experiences (n)') + ylab('Participants (proportion)') +
+    theme(panel.border = element_blank(), panel.grid.major = element_blank(),panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
   
    
   ## TIME
@@ -388,6 +407,22 @@ gameplay <- gameplay %>% rename(
   table()
   plot(dat$cond_dur ~ dat$PLEX_count)
 
+  #DIST - In-game scores
+  ggplot( gameplay %>% filter(condition=='game') ) +
+    geom_density( aes(x = score, y = ..density.., fill = condition, colour = condition), alpha=.6) +
+    scale_fill_manual(values=c("#6cafb4", "#d8d8d8")) +
+    scale_colour_manual(values=c("#6cafb4", "#d8d8d8")) +
+    theme_bw() + xlab('In-game score (%)') + ylab('Participants (proportion)') +
+    theme(panel.border = element_blank(), panel.grid.major = element_blank(),panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
+  
+  #DIST - Intervention count
+  ggplot( summ ) +
+    geom_density( aes(x = n, y = ..density.., fill = condition, colour = condition), alpha=.6) +
+    scale_fill_manual(values=c("#6cafb4", "#d8d8d8")) +
+    scale_colour_manual(values=c("#6cafb4", "#d8d8d8")) +
+    theme_bw() + xlab('In-simulation interventions') + ylab('Participants (proportion)') +
+    xlim(0, 200) +
+    theme(panel.border = element_blank(), panel.grid.major = element_blank(),panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
   
 # Save
   write_csv(as.data.frame(dat_plex), "./outputs/plex_summ.csv")
