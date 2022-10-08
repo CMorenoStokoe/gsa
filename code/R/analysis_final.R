@@ -12,128 +12,65 @@ library('tidyverse')
 setwd("C:/git/gsa") # Set WD
 
 ## DATA
-# Loading
+
+# Load in data
 dat <- read_csv("data/cleaned/Q_scored.csv")
-dat <- dat %>% 
-  mutate(
-    cond_binary = ifelse(cond =='Ctr', 0, 1)
-  )
 Q <- read_csv("data/cleaned/Q_excludedPpts.csv")
-Q <- Q %>% mutate(
-    cond_binary = ifelse(cond =='Ctr', 0, 1)
-  )
 gameplay <- read_excel("data/cleaned/gameplay.xlsx")
 gameplay <- gameplay %>% 
   rename(timestamp = time) %>% 
   group_by(user) %>%
   mutate(
-    t_max = max(timestamp),
     t_min = min(timestamp),
     t_diff = difftime(max(timestamp), min(timestamp), units = 'mins')
-  ) %>%
+  ) %>% 
   ungroup() %>%
   mutate(
-    t = difftime(timestamp, t_min, units = 'mins'),
-    tPct = as.numeric(difftime(timestamp, t_min, units = 'mins'))/as.numeric(difftime(t_max, t_min, units = 'mins')),
-    condition_binary = ifelse(condition=='iv', 0, 1)
+    t = difftime(timestamp, t_min, units = 'mins')
   ) %>%
   filter(
     t_diff<80,
     t_diff>0
   )
-allInterventions <- as.data.frame(read_excel(
-  "outputs/allPossibleInterventions_calculated.xlsx", 
-  sheet = "allInterventionPools"
-))
-allInterventions <- allInterventions %>% filter(Group != 'Best solutions')
-allInterventions$Group <- as.factor( allInterventions$Group )
-levels(allInterventions$Group) <- c(1, 0)
-randomGuessing <-  allInterventions %>% filter(Group==0)  # bootstrap random guesses to match sample size for player guesses
-randomGuessing <- randomGuessing[rep(seq_len(nrow(randomGuessing)), each = 18), ]
-allInterventions <- rbind(allInterventions, randomGuessing)
 
-# Create player groups
-createGroups <- function(){
-  playerMeans <- gameplay %>% 
-    filter(condition=='game') %>%
-    group_by(user) %>% 
-    summarise(
-      score = mean(score, na.rm=TRUE),
-      group = 1
-    )  
-  meanNInterventions <- gameplay %>% 
-    filter(condition=='game') %>% 
-    group_by(user) %>% summarise(n = n()) %>% 
-    summarise(
-      min = min(n),
-      max = max(n),
-      mean = mean(n),
-      sd = sd(n)
-    )
-  randomScore <- function(){
-    n_sample <- seq(meanNInterventions$min, meanNInterventions$max, by=1)
-    n_weights <- dnorm(
-      seq(meanNInterventions$min, meanNInterventions$max, by=1), 
-      mean=meanNInterventions$mean, 
-      sd=meanNInterventions$sd
-    )
-    n <- sample(n_sample, size=1, prob=n_weights)
-    score_sample <- ( allInterventions %>% filter( Group==0 ) )$Score
-    return(
-      sample(score_sample, size=n, replace=TRUE)
-    )
-  }
-  randomMeans <- data.frame(user=character(), score=numeric(), group=numeric() )
-  for(i in 1:nrow( playerMeans )){
-    randomScores <- randomScore()
-    randomMeans <- rbind(
-      randomMeans,
-      data.frame(
-        score = randomScores,
-        user = paste('random-', i, sep=''),
-        group = 0
-      )
-    )
-  }
-  return( rbind(playerMeans, randomMeans) )
+# Define function to assign binary groups
+asBinary <- function(col, mainLevelName){
+  return(
+    col %>% mutate(col = ifelse(col==mainLevelName, 1, 0))
+  )
 }
-#groupsForComparingScores <- createGroups() %>% filter(score > 0)
+
+# Split groups
+dat$plex_quant <- cut( dat$PLEX_count, breaks=c(0,3,6,9,12), labels=c(1, 2, 3, 4), include.lowest = TRUE )
+gameplay$score_quant <- cut( gameplay$score, breaks=c(0,1,50,99,100), labels=c(1, 2, 3, 4), include.lowest = TRUE )
 
 ## DESCRIPTIVES
-descriptives <- cbind( 
-  dat %>%
-      group_by(cond) %>%
-      dplyr::select(cond_dur, PLEX_count) %>%
-      summarise_all( list(mean=mean,sd=sd,min=min,max=max) ),
-  Q %>%
-    group_by(cond) %>%
-    dplyr::select(test_score, Usability) %>%
-    summarise_all( list(mean=mean,sd=sd,min=min,max=max) ),
-  gameplay %>%
-    group_by(user, condition) %>%
-    summarise(
-      t_diff=first(t_diff),
-      score=mean(score),
-      n=n()
-    ) %>%
-    group_by(condition) %>%
-    dplyr::select(t_diff, score, n) %>%
-    summarise_all( list(mean=mean,sd=sd,min=min,max=max) ),
-  groupsForComparingScores %>%
-    group_by(group) %>%
-    dplyr::select(score) %>%
-    summarise( n=n(), mean=mean(score),sd=sd(score),min=min(score),max=max(score) ),
-  gameplay %>%
-    filter(condition=='game') %>%
-    group_by( t ) %>% 
-    summarise( n=n(), mean=mean(score),sd=sd(score),min=min(score),max=max(score) )
+# Summaries
+sumry <- function(x){return( 
+  cbind(
+    x %>% ungroup %>% summarise_if(is.numeric, list(mean=mean,sd=sd,min=min,max=max) ),
+    x %>% summarise_if(is.numeric, list(cond_mean=mean) )
+  )
+)}
+descriptives_1 <- cbind( 
+  duration = dat %>% group_by(cond) %>% dplyr::select(cond_dur) %>% sumry,
+  mcq = Q %>% group_by(cond) %>% dplyr::select(test_score) %>% sumry,
+  usability =  Q %>% group_by(cond) %>% dplyr::select(Usability) %>% sumry
 )
+descriptives_2 <- table(dat$plex_quant, dat$cond)
+descriptives_3 <- table(gameplay$score_quant, gameplay$t)
+
+# Distributions
+hist( dat$cond_dur )
+hist( Q$test_score )
+hist( Q$Usability )
+barplot( table( dat$plex_quant ), ylim=range(pretty(c(0, 80))), ylab='Frequency' )
+barplot( table( gameplay$score_quant ), ylim=range(pretty(c(0, 1250))), ylab='Frequency' )
 
 ## ANALYSIS
 
 #MOTIVATION - plot(duration_q, 1) ; plot(duration_q, 2)
 duration_q <- glm(cond_dur ~ cond, family=Gamma, data=dat)
-duration_sw <- glm(as.numeric(t_diff) ~ condition, family=Gamma, data=gameplay)
 #PLEX - plot(plex, 1) ; plot(plex, 2)
 #More playful experiences in game
 plex <- glm(formula=cond_binary~PLEX_count, family=poisson, data=dat) # not normally distributed but equal variances: bartlett.test(PLEX_count ~ cond, data=dat) && shapiro.test(dat$PLEX_count)
@@ -169,8 +106,8 @@ learningInGame_dat <- gameplay %>%
   group_by( t=as.numeric( t ) ) %>% 
   summarise( n=n(), mean=mean(score),sd=sd(score),min=min(score),max=max(score) ) %>%
   filter(n>10, t>0)
-learningInGame <- lm( # normal and linear BUT heteroscescastic : plot(learningInGame, 1) ; plot(learningInGame, 2) ; shapiro.test(residuals(learningInGame))
-  formula = learningInGame_dat$t ~ learningInGame_dat$mean, 
+learningInGame <- glm( # normal and linear BUT heteroscescastic : plot(learningInGame, 1) ; ; shapiro.test(residuals(learningInGame))
+  formula =  score ~ as.numeric(t), 
   data = gameplay 
 )
 learningInGame_adj <- coeftest(learningInGame, vcov=vcovHC(learningInGame) )
