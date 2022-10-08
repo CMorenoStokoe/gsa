@@ -1,34 +1,28 @@
 ## Initialisation
 library('readxl')
-<<<<<<< Updated upstream
 library('readr')
-library('psych')
 library('dplyr')
-=======
-library('dplyr')
-library('readr')
 library('ggplot2')
 
 library('psych')
->>>>>>> Stashed changes
 library('broom')
 library('Hmisc')
 library('tidyverse')
 library('sm')
 library('leaps')
-<<<<<<< Updated upstream
 library('MASS')
-setwd("C:/py/gsa") # Set WD
-=======
 
 setwd("C:/git/gsa") # Set WD
->>>>>>> Stashed changes
 
 ## Read in data
 dat <- read_csv("data/cleaned/Q_scored.csv")
 gameplay <- read_excel("data/cleaned/gameplay.xlsx")
 gameplay <- gameplay %>% rename(
   dur = time
+)
+allInterventions <- read_excel(
+  "outputs/allPossibleInterventions_calculated.xlsx", 
+  sheet = "allInterventionPools"
 )
 
 ## analysis
@@ -125,7 +119,6 @@ gameplay <- gameplay %>% rename(
     theme_bw() + xlab('Playful experiences (n)') + ylab('Participants (proportion)') +
     theme(panel.border = element_blank(), panel.grid.major = element_blank(),panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
   
-   
   ## TIME
   # Observed dur
   times_raw <- gameplay %>% 
@@ -413,6 +406,14 @@ gameplay <- gameplay %>% rename(
     scale_fill_manual(values=c("#6cafb4", "#d8d8d8")) +
     scale_colour_manual(values=c("#6cafb4", "#d8d8d8")) +
     theme_bw() + xlab('In-game score (%)') + ylab('Participants (proportion)') +
+    theme(panel.border = element_blank(), panel.grid.major = element_blank(),panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
+  
+  #DIST - Intervention sample scores
+  ggplot( allInterventions %>% filter(Group != 'Best solutions') ) +
+    geom_density( aes(x = Score, y = ..density.., fill = Group, colour = Group), alpha=.6) +
+    scale_fill_manual(values=c("#6cafb4", "#d8d8d8")) +
+    scale_colour_manual(values=c("#6cafb4", "#d8d8d8")) +
+    theme_bw() + xlab('In-game score (%)') + ylab('Interventions (proportion)') +
     theme(panel.border = element_blank(), panel.grid.major = element_blank(),panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
   
   #DIST - Intervention count

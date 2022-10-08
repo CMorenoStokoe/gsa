@@ -1,0 +1,4 @@
+"","statistic","p.value","method","alternative"
+"1",3260.5,0.0892941979356768,"Wilcoxon rank sum test with continuity correction","two.sided"
+"2",3848,0.946425757100161,"Wilcoxon rank sum test with continuity correction","two.sided"
+"3",1827,1.83883906606245e-09,"Wilcoxon rank sum test with continuity correction","two.sided"

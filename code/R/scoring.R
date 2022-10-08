@@ -119,7 +119,8 @@ Q <- read_csv("data/cleaned/Q_excludedPpts.csv")
   # Score MCQ
       
     #t
-    t.test(Q$test_score ~ Q$cond)
+    t.test(Q$test_score ~ Q$cond, equal.vars=FALSE)
+    bartlett.test(cond_dur ~ cond, data=Q) #Het:  1,173  82.178 2.644e-16
     
     #DIST - MCQ
     ggplot( Q ) +
