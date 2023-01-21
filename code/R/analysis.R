@@ -8,9 +8,6 @@ library('psych')
 library('broom')
 library('Hmisc')
 library('tidyverse')
-library('sm')
-library('leaps')
-library('MASS')
 
 setwd("C:/git/gsa") # Set WD
 
@@ -256,21 +253,21 @@ allInterventions <- read_excel(
   fit <- summary(
     lm(dat$cond_dur ~ dat$PLEX_count)
   )
-  
-  loadings <- dat %>% 
-    select(Captivation:Sensation) %>%
-    summarise_all( 
-      list(
-        r2 = function(x){return( lm(x ~ dat$cond_dur)$coefficients[1] )},
-        p = function(x){return( summary(lm(x ~ dat$cond_dur)$ )}
-      )
-      
-    )
-  loadings <- as.data.frame( t(loadings) )
-  colnames(loadings) <- c('R2')
-  loadings$plex <- rownames(loadings)
-  loadings <- loadings %>% arrange(desc(R2)) %>%
-    mutate(plex=factor(plex, levels=plex))
+  # 
+  # loadings <- dat %>% 
+  #   select(Captivation:Sensation) %>%
+  #   summarise_all( 
+  #     list(
+  #       r2 = function(x){return( lm(x ~ dat$cond_dur)$coefficients[1] )},
+  #       p = function(x){return( summary(lm(x ~ dat$cond_dur)$ )}
+  #     )
+  #     
+  #   )
+  # loadings <- as.data.frame( t(loadings) )
+  # colnames(loadings) <- c('R2')
+  # loadings$plex <- rownames(loadings)
+  # loadings <- loadings %>% arrange(desc(R2)) %>%
+  #   mutate(plex=factor(plex, levels=plex))
   
     # Scree
     ggplot(loadings, aes(x=plex, y=R2, group=1))+

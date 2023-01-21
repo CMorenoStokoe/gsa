@@ -10,9 +10,9 @@ install.packages('Rcpp')
 install.packages('psych') # Descriptives
 install.packages('Hmisc') # Correlation matrix
 install.packages('leaps') # Stepwise regression
-install.packages('MASS') # Logistic regresion
-install.packages('lmtest') # Expanded lm testing
-install.packages('sandwich') # heteroscedasctically robust SEs
+install.packages('psych') # Descriptives
+install.packages('ordinal') # Ordinal regression
+install.packages('GPArotation') # EFA rotation
 # for plots
 install.packages('corrplot') # Plotting correlation matrices
 install.packages('ggplot2') # Plots

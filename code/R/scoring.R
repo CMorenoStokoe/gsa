@@ -80,7 +80,7 @@ Q <- read_csv("data/cleaned/Q_excludedPpts.csv")
   # Compare answers on each question
       # Means
       Q %>% group_by(cond) %>% summarise(mean=mean(test_score))
-      t.test(Q$cond, Q$test_score, na.rm=TRUE)
+      #t.test(Q$cond, Q$test_score, na.rm=TRUE)
       
       # Individual Qs
       Q_mcq <- data.frame(Ctr=number, )
@@ -199,10 +199,35 @@ Q <- read_csv("data/cleaned/Q_excludedPpts.csv")
     allQs <- Q %>% select(Q1,	Q2,	Q3,	Q4,	Q5,	Q6,	Q7,	Q8,	Q9,	Q10,	Q11,	Q12,	Q13,	Q14,	Q15,	Q16, Q17,	Q18,	Q19,	Q20,	Q21,	Q22)
     #pca <- prcomp(na.omit(allQs), scale=TRUE)
     mcq_pca <- psych::principal(allQs, rotate="varimax", nfactors=4, scores=TRUE)
-    pa <- fa(allQs,2,fm="pa" ,rotate="varimax")  #principal axis 
-    mcq_scree <- VSS.scree(allQs)
-    plot(pa$loadings)
+    pa <- fa(allQs,2, nfactors=7, fm="pa" ,rotate="varimax")  
+    fa.diagram(pa, labels=NULL, sort=TRUE)
+    pa$factors
     
+    # EFA
+    scree <- fa.parallel(allQs, fm = 'minres', fa = 'fa')
+    pa <- fa(allQs,2, nfactors=3,fm="pa" ,rotate="oblimin") 
+    pa$loadings
+    print(pa$loadings, cutoff = 0.3)
+    
+    newScore <- Q %>% 
+      summarise(
+        cond = cond,
+        PA1 = sum(Q2, Q7, Q12, Q13, na.rm=TRUE)/4,
+        PA2 = sum(Q4, Q15, Q16, Q21, na.rm=TRUE)/4,
+        PA3 = sum(Q8, Q11, na.rm=TRUE)/2
+      ) %>%
+      group_by(cond) %>%
+      summarise(
+        PA1 = mean(PA1, na.RM=TRUE),
+        PA2 = mean(PA2, na.RM=TRUE),
+        PA3 = mean(PA3, na.RM=TRUE)
+      )
+    
+    histogram(  newScore$PA1 )
+    histogram(  newScore$PA2 )
+    histogram(  newScore$PA3 )
+    
+
   # Score intervention task
     
     # Define function

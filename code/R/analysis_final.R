@@ -2,25 +2,31 @@
 library('readxl')
 library('readr')
 library('dplyr')
-library('lmtest')
-library('sandwich')
-library('MASS')
 library('ggplot2')
 library('psych')
 library('tidyverse')
+library('lme4')
+library('ordinal')
 
 setwd("C:/git/gsa") # Set WD
 
 ## DATA
 
 # Load in data
-dat <- read_csv("data/cleaned/Q_scored.csv")
-Q <- read_csv("data/cleaned/Q_excludedPpts.csv")
+dat <- read_csv("data/cleaned/Q_scored.csv")%>% 
+  mutate(cond_bin = ifelse(cond=='Ctr', 1, 2)) %>%
+  mutate_at(vars(Captivation:Sensation), ~.x+1 )
+Q <- read_csv("data/cleaned/Q_excludedPpts.csv") %>% 
+  mutate( 
+    cond_bin = ifelse(cond=='Ctr', 1, 2),
+    test_score_inv = 23-test_score
+  )
 gameplay <- read_excel("data/cleaned/gameplay.xlsx")
 gameplay <- gameplay %>% 
   rename(timestamp = time) %>% 
   group_by(user) %>%
   mutate(
+    n = row_number(),
     t_min = min(timestamp),
     t_diff = difftime(max(timestamp), min(timestamp), units = 'mins')
   ) %>% 
@@ -30,146 +36,272 @@ gameplay <- gameplay %>%
   ) %>%
   filter(
     t_diff<80,
-    t_diff>0
+    t_diff>0,
+    condition=='game'
   )
-
-# Define function to assign binary groups
-asBinary <- function(col, mainLevelName){
-  return(
-    col %>% mutate(col = ifelse(col==mainLevelName, 1, 0))
-  )
-}
-
-# Split groups
-dat$plex_quant <- cut( dat$PLEX_count, breaks=c(0,3,6,9,12), labels=c(1, 2, 3, 4), include.lowest = TRUE )
-gameplay$score_quant <- cut( gameplay$score, breaks=c(0,1,50,99,100), labels=c(1, 2, 3, 4), include.lowest = TRUE )
 
 ## DESCRIPTIVES
 # Summaries
 sumry <- function(x){return( 
   cbind(
-    x %>% ungroup %>% summarise_if(is.numeric, list(mean=mean,sd=sd,min=min,max=max) ),
-    x %>% summarise_if(is.numeric, list(cond_mean=mean) )
+    x %>% ungroup %>% summarise_if(is.numeric, list(mean=mean,sd=sd,min=min,max=max, var=var) ),
+    x %>% summarise_if(is.numeric, list(g_mean=mean,g_sd=sd,g_min=min,g_max=max, g_var=var) )
   )
 )}
-descriptives_1 <- cbind( 
+descriptives <- cbind( 
   duration = dat %>% group_by(cond) %>% dplyr::select(cond_dur) %>% sumry,
+  plex =  dat %>% group_by(cond) %>% dplyr::select(PLEX_count) %>% sumry,
+  usability =  Q %>% group_by(cond) %>% dplyr::select(Usability) %>% sumry,
   mcq = Q %>% group_by(cond) %>% dplyr::select(test_score) %>% sumry,
-  usability =  Q %>% group_by(cond) %>% dplyr::select(Usability) %>% sumry
+  score =  gameplay %>% group_by(condition) %>% dplyr::select(score) %>% sumry
 )
-descriptives_2 <- table(dat$plex_quant, dat$cond)
-descriptives_3 <- table(gameplay$score_quant, gameplay$t)
+scores<-gameplay %>% 
+  filter(condition=='game') %>%
+  group_by(objective) %>%
+  summarise( n = n(), mean = mean(score), min = min(score), max = max(score), sd=sd(score) )
 
 # Distributions
-hist( dat$cond_dur )
-hist( Q$test_score )
-hist( Q$Usability )
-barplot( table( dat$plex_quant ), ylim=range(pretty(c(0, 80))), ylab='Frequency' )
-barplot( table( gameplay$score_quant ), ylim=range(pretty(c(0, 1250))), ylab='Frequency' )
+ggplot(dat, aes(x=cond_dur, fill=cond)) + 
+  geom_density( alpha=.5 ) +
+  theme_bw() + xlab('Duration (min)') + ylab('Participants') +
+  theme(panel.border = element_blank(), panel.grid.major = element_blank(),panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
+ggplot(dat, aes(x=PLEX_count, fill=cond)) + 
+  geom_density( alpha=.5 ) +
+  theme_bw() + xlab('Playfulness (1-12)') + ylab('Participants') +
+  theme(panel.border = element_blank(), panel.grid.major = element_blank(),panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
+ggplot(Q, aes(x=Usability, fill=cond)) + 
+  geom_density( alpha=.5 ) +
+  theme_bw() + xlab('Usability (%)') + ylab('Participants') +
+  theme(panel.border = element_blank(), panel.grid.major = element_blank(),panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
+ggplot(Q, aes(x=test_score, fill=cond)) + 
+  geom_density( alpha=.5 ) +
+  theme_bw() + xlab('MCQ test score (0-22)') + ylab('Participants') +
+  theme(panel.border = element_blank(), panel.grid.major = element_blank(),panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
+ggplot(gameplay, aes(x=score)) + 
+  geom_density( alpha=.5 ) +
+  theme_bw() + xlab('In-game score (0-100%)') + ylab('Participants') +
+  theme(panel.border = element_blank(), panel.grid.major = element_blank(),panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
+
+# Distribution tests
+distributionParamaters <- cbind(
+  rbind(
+    bartlett.test(cond_dur ~ cond, data=dat),
+    bartlett.test(PLEX_count ~ cond, data=dat),
+    bartlett.test(Usability ~ cond, data=Q),
+    bartlett.test(test_score ~ cond, data=Q),
+    NA
+  ),
+  rbind(
+    shapiro.test( (dat %>% filter(cond=='Ctr') )$cond_dur ),
+    shapiro.test( (dat %>% filter(cond=='Ctr') )$PLEX_count ),
+    shapiro.test( (Q %>% filter(cond=='Ctr') )$Usability ),
+    shapiro.test( (Q %>% filter(cond=='Ctr') )$test_score ),
+    shapiro.test( (gameplay )$score )
+  ),
+  rbind(
+    shapiro.test( (dat %>% filter(cond=='Exp') )$cond_dur ),
+    shapiro.test( (dat %>% filter(cond=='Exp') )$PLEX_count ),
+    shapiro.test( (Q %>% filter(cond=='Exp') )$Usability ),
+    shapiro.test( (Q %>% filter(cond=='Exp') )$test_score ),
+    shapiro.test( (gameplay )$score )
+  )
+)
+
+# Save
+write.csv(descriptives, 'outputs/descriptives.csv')
+write.csv(distributionParamaters, 'outputs/distributionParamaters.csv')
 
 ## ANALYSIS
 
-#MOTIVATION - plot(duration_q, 1) ; plot(duration_q, 2)
-duration_q <- glm(cond_dur ~ cond, family=Gamma, data=dat)
-#PLEX - plot(plex, 1) ; plot(plex, 2)
-#More playful experiences in game
-plex <- glm(formula=cond_binary~PLEX_count, family=poisson, data=dat) # not normally distributed but equal variances: bartlett.test(PLEX_count ~ cond, data=dat) && shapiro.test(dat$PLEX_count)
-#PLEX x Duration
-#These were linked to users spending longer with software
-plexXDuration <- glm(
-    formula = cond_dur ~ Captivation + Challenge + Competition + Completion + Discovery + Progression + Exploration + Fantasy + Humor + Nurture + Relaxation + Sensation,
-    data = dat, family = Gamma)
-#And one (completion) was a significant moderator where players experiencing this played for longer 
-# plot(plexXDuration_mod, 1) ; plot(plexXDuration_mod, 2)
-plexXDuration_mod <- glm(
-    cond_dur ~ 
-      cond + 
-      Captivation + Challenge + Competition + Completion + Discovery + Progression + Exploration + Fantasy + Humor + Nurture + Relaxation + Sensation, 
-    family=Gamma, 
-    data=dat
-) #This serves to demonstrate the subjective nature of play 
-#Usability
-usability <- wilcox.test(data = Q, Usability ~ cond) # symmetrical bimodal distribution
-usability_lo <- t.test(data = Q %>% filter(Usability<55), Usability ~ cond, var.equal=TRUE) # normally distributed and equal variances: bartlett.test(Usability ~ cond, data=Q %>% filter(Usability>50) ) && shapiro.test(( Q %>% filter(Usability<55) )$Usability )
-usability_hi <- t.test(data = Q %>% filter(Usability>60), Usability ~ cond, var.equal=TRUE) # normally distributed and equal variances: bartlett.test(Usability ~ cond, data=Q %>% filter(Usability>50) ) && shapiro.test(( Q %>% filter(Usability>60) )$Usability )
+#LM assumptions
+# 1- linearity 
+# 2- homoscedascity (variance is constant across values)
+# 3- no autocorrelation
+# 4- multivarate normality (normally distributed residuals)
+# 5- no multicolinearaity (variables not highly correlated with eachother)
+#GLM assumptions
+# 1- indepdendence
+# 2- distribution defined by family of glm
+# 3- linear relationship after transformation by link function
+  #Gamma - gamma dsitribution + no 0s
+  #Ordinal logistic regression - proportional odds (explanatory variables have the same effect on the odds regardless of the threshold)
 
-#LEARNING
-#Mcq ; plot(mcq, 1) ; plot(mcq, 2)
-mcq <- glm( # assumes linearity but relaxes assumption for constant variance
-  formula=test_score~cond_binary,
-  data=Q,
-  family=poisson
-) # Not normal and not homogeneous variance: bartlett.test(cond_dur ~ cond, data=Q) :   K-squared = 109.46, df = 1, p-value < 2.2e-16 ALSO not bimodal: plot(table(Q$test_score)) ALSO not normal: shapiro.test(Q$test_score)
-#Learning Over Time
-learningInGame_dat <- gameplay %>%
-  filter(condition=='game') %>%
-  group_by( t=as.numeric( t ) ) %>% 
-  summarise( n=n(), mean=mean(score),sd=sd(score),min=min(score),max=max(score) ) %>%
-  filter(n>10, t>0)
-learningInGame <- glm( # normal and linear BUT heteroscescastic : plot(learningInGame, 1) ; ; shapiro.test(residuals(learningInGame))
-  formula =  score ~ as.numeric(t), 
-  data = gameplay 
-)
-learningInGame_adj <- coeftest(learningInGame, vcov=vcovHC(learningInGame) )
+#Plots: 
+# Residuals X Fitted Values = plot(XX, 1) 
+  #Residual x fitted value graph shows:
+  # 1- Random variance around the 0 line indicates no hetereroscedascity (& supports a linear relationship)
+  # 2- A mean line around 0 indicates the variances of the error terms are equal
+  # 3- An absence of extreme values indicates there are no outliers
+# Q-Q = plot(XX, 2)
+  #Q-Q graph shows:
+  # Values fitting the line closely indicate error terms are normally distributed 
 
-#RESEARCH
-#Players make more valid solutions than random guessing
-playerScores_dat <- allInterventions %>% mutate(
-  Score_group = case_when(
-    Score==0 ~ 1,
-    Score==100 ~ 3,
-    TRUE ~ 2
+#Tests:
+#Equal variances: bartlett.test(PLEX_count ~ cond, data=dat) 
+#Normality: shapiro.test(dat$PLEX_count)
+
+# Define functions to summarise results
+summarise_wilcox <- function(res){return(broom::tidy(res)[,1:2])}
+summarise_glm <- function(res){return(broom::tidy(res)[2,])}
+summarise_logOrdReg <- function(res){
+  coefs <- coef(summary(res))
+  t <- cbind(
+    coefs,
+    p=pnorm(abs(coefs[, "t value"]), lower.tail = FALSE) * 2
   )
+  colnames(t)=c("estimate", "std.error", "statistic", "p.value")
+  t <- rownames_to_column(as.data.frame(t), var = "term")
+  return(t[1,])
+}
+summarise_lmer <- function(res){
+  coefs <- coef(summary(res))
+  t <- cbind(
+    coefs,
+    p=pnorm(abs(coefs[, "t value"]), lower.tail = FALSE) * 2
+  )
+  colnames(t)=c("estimate", "std.error", "statistic", "p.value")
+  t <- rownames_to_column(as.data.frame(t), var = "term")
+  return(t[2,])
+}
+
+#Hypothesis tests
+motivation_duration <- glm(cond_dur ~ cond_bin, family=Gamma, data=dat) # diagnostic plots   plot(dur, 1)   plot(dur, 2)
+motivation_playfulness <- wilcox.test( PLEX_count ~ cond_bin, data=dat)
+learning <- wilcox.test(formula=test_score~cond_bin, data=Q) 
+
+#Other analyses
+sensitivity_usability <- wilcox.test(formula=Usability~cond_bin, data=Q) 
+research_descriptivesOfNs <- gameplay %>% summarise(total=n(),mean=mean(n, na.rm=TRUE), sd=sd(n, na.rm=TRUE), min=min(n, na.rm=TRUE), max=max(n, na.rm=TRUE))
+research_descriptivesOfScores <- gameplay %>% summarise(mean=mean(score, na.rm=TRUE), se=sd(score, na.rm=TRUE)/sqrt(n()), min=min(score, na.rm=TRUE), max=max(score, na.rm=TRUE))
+research_descriptivesByGoal <- gameplay %>% group_by(objective) %>% summarise(mean=mean(score, na.rm=TRUE), se=sd(score, na.rm=TRUE)/sqrt(n()), min=min(score, na.rm=TRUE), max=max(score, na.rm=TRUE))
+research_typesOfSolutions <- NA
+
+ggplot(gameplay, aes(x=t,y=score, size=n) ) +
+  geom_point() +
+  geom_abline( slope=  ) + 
+  lims(x = c(0,25), y = c(0,100)) +
+  theme_bw() + xlab('Time in-game (minute)') + ylab('Score (%)') +
+  theme(panel.border = element_blank(), panel.grid.major = element_blank(),panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
+
+  # Scores over gameplay
+    
+    # Get scores over time / trials
+    scoresOverTime<-gameplay %>% 
+      filter(condition=='game') %>%
+      group_by(user, t) %>%
+      summarise( 
+        score =mean(score),
+        n_solutions = n()
+      ) %>%
+      group_by(t) %>%
+      summarise(
+        n_solutions = sum( n_solutions  ),
+        n_users = n(), 
+        mean = mean(score), min = min(score), max = max(score), sd=sd(score), 
+        conf_hi=mean(score) + qt(0.95,df=n()-1)*sd(score)/sqrt(n()),
+        conf_lo=mean(score) - qt(0.95,df=n()-1)*sd(score)/sqrt(n()) 
+      ) %>%
+      filter(n_users>10)
+    scoresOverTrials<-gameplay %>% 
+      filter(condition=='game') %>%
+      group_by(user, n) %>%
+      summarise( 
+        score =mean(score),
+        n_solutions = n()
+      ) %>%
+      group_by(n) %>%
+      summarise(
+        n_solutions = sum( n_solutions  ),
+        n_users = n(), 
+        mean = mean(score), min = min(score), max = max(score), sd=sd(score), 
+        conf_hi=mean(score) + qt(0.95,df=n()-1)*sd(score)/sqrt(n()),
+        conf_lo=mean(score) - qt(0.95,df=n()-1)*sd(score)/sqrt(n()) 
+      ) %>%
+      filter(n_users>10)
+    
+    # Describe distributions
+    hist( scoresOverTime$mean )
+    shapiro.test(scoresOverTime$mean)
+    hist( scoresOverTrials$mean )
+    shapiro.test(scoresOverTrials$mean)
+    
+    # Model 
+    research_scores_byTime <- lm(mean~t, data=scoresOverTime)
+    research_scores_byTrial <- lm(mean~n, data=scoresOverTrials)
+    
+    # Main plots
+    ggplot(scoresOverTime, aes(x=t,y=mean, size=n_users) ) +
+      geom_point() +
+      geom_smooth(method = "glm", se = TRUE) +
+      lims(x = c(0,25), y = c(0,100)) +
+      theme_bw() + xlab('Time in-game (minute)') + ylab('Score (%)') +
+      theme(panel.border = element_blank(), panel.grid.major = element_blank(),panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
+    
+    ggplot(scoresOverTrials, aes(x=n,y=mean, size=n_users) ) +
+      geom_point() +
+      geom_smooth(method = "glm", se = TRUE) +
+      ylim( c(0, 100) ) +
+      theme_bw() + xlab('In-game trial number') + ylab('Score (%)') +
+      theme(panel.border = element_blank(), panel.grid.major = element_blank(),panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
+
+    # Diagnostic plots
+    plot( research_scores_byTime, 1 )
+    plot( research_scores_byTime, 2 )
+    plot( research_scores_byTrial, 1 )
+    plot( research_scores_byTrial, 2 )
+    
+  #Mixed ordinal logistic regression
+  gameplay_quant <- gameplay %>%
+    mutate(
+      score = case_when(
+        score == 0 ~ 0,
+        score < 100 ~ 1,
+        score == 100 ~ 2
+      )
+    )
+
+  research_score_overTime <- clmm( 
+    as.factor(score) ~ t + (1 | user), 
+    data=gameplay_quant
+  )
+  research_score_overTrial <- clmm( 
+    as.factor(score) ~ n + (1 | user), 
+    data=gameplay_quant
+  )
+  
+  
+  table(gameplay$score, gameplay$t)
+  table(gameplay$score, gameplay$n)
+  
+  summary(research_score_overTime)
+  summary(research_score_overTrial)
+  
+  exp( coef(research_score_overTime) )
+  
+  coef(research_score_overTime)
+  
+  plot(research_score_overTime, type=c("p","smooth"), col.line=2, col=1)
+  lattice::qqmath(research_score_overTime, col=1, col.line=2)
+  
+  summary(research_score_overTime)
+  
+  gameplay_quant_forPlot <- gameplay_quant %>%
+    group_by(t) %>%
+    summarise( pct = sum(score)/n()*100, num=n() ) %>%
+    filter(num>10)
+  ggplot(gameplay_quant_forPlot, aes(x=t,y=pct, size=num) ) +
+    geom_point() +
+    ylim( c(0, 100) ) +
+    theme_bw() + xlab('Time in-game (minute)') + ylab('Valid solutions (%)') +
+    theme(panel.border = element_blank(), panel.grid.major = element_blank(),panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
+
+  
+# VIEW RESULTS
+results <- rbind(
+  summarise_wilcox( motivation_playfulness ),
+  summarise_wilcox( learning ),
+  summarise_wilcox( sensitivity_usability )
 )
-playerScores_test_chi <- chisq.test(
-  playerScores_dat$Score_group, 
-  playerScores_dat$Group,
-  simulate.p.value = TRUE
-)
+results2 <- summarise_glm( motivation_duration )
 
-#And of these valid solutions they suggest more effective solutions 
-plot(table(
-  playerScores_dat$Score_group
-))
-playerScores <- glm(
-  formula=Group ~ Score,
-  family=binomial,
-  data=playerScores_dat %>% 
-    filter(Score>0) 
-) # plot(playerScores, 2)
-
-## SUMMARY
-duration_q
-duration_sw 
-plex
-plexXDuration
-plexXDuration_mod
-usability 
-usability_lo
-usability_hi
-mcq
-learningInGame
-playerScores 
-
-## SAVE
-write.csv(descriptives, 'outputs/descriptives.csv')
-write.csv(
-  rbind(
-    broom::tidy(duration_q), #glm - gamma
-    broom::tidy(duration_sw), #glm - "
-    broom::tidy(plexXDuration), #glm - logistic regression
-    broom::tidy(plexXDuration_mod), #glm - moderator 
-    broom::tidy(learningInGame) # lm - corrected for heteroscescadascicity
-  ), 'outputs/results_LMs.csv')
-write.csv(
-  rbind(
-    broom::tidy(usability_lo), #t - parametric
-    broom::tidy(usability_hi) #t - "
-  ), 'outputs/results_Ts.csv')
-write.csv(
-  rbind(
-    broom::tidy(mcq), #wilcox - not normal but homogenous
-    broom::tidy(usability), #wilcox - slightly bimodal but symmetrical
-    broom::tidy(plex), #glm - negative binomial; not normal and unequal vars
-    broom::tidy(playerScores_test) # wilcox - large differences in sample size and not symmetrical
-  ), 'outputs/results_Wil.csv')
+results$term <- c("dur",  "learn",  "usability")
